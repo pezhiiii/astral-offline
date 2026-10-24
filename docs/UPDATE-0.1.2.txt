@@ -1,0 +1,11 @@
+ASTRAL 0.1.2 update
+Upload the app folder inside this ZIP into the repository root (beside tools and docs).
+Do not upload the ZIP or an extra parent folder.
+Changes: keep the loaded model for subsequent questions; each question has a fresh context.
+Release the model before replacing it or destroying the Activity.
+Show model setup, prompt/context, first-token latency, generation duration, token count and throughput.
+Flag answers that reach the token limit. Request concise answers and calibrated claims.
+Validation: C++17 syntax check passed against the pinned llama.cpp headers. Android build and real-device speed are not verified yet.
+Keep the currently installed APK and original GGUF/text files. CI debug signatures may differ between builds, so do not uninstall or replace the app until installation is planned.
+Test after installation: run the same question twice in one session, compare loaded/reused timings, then reimport model and check the next run is loaded.
+Longer model residency increases idle RAM usage; background Android process eviction remains possible.
