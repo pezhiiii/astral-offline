@@ -1,0 +1,26 @@
+ASTRAL 0.1.1 source update — performance and progress diagnostics
+
+Extract this ZIP. Upload the app folder into the ROOT of pezhiiii/astral-offline
+using Add file > Upload files, then commit. Do not upload the ZIP itself.
+Do not put app inside another astral-offline folder.
+The existing GitHub Actions workflow builds the debug APK as before.
+
+Changes:
+- Force Release optimization for the native CMake engine while retaining the debug APK signature.
+- Show loading/context/evidence/generation stages and elapsed time.
+- Poll partial generated UTF-8 text every 500 ms; final answer remains authoritative.
+- Log engine stages under AstralEngine in logcat.
+- Keep display awake while working, and restore normal behavior on completion.
+- Reduce maximum output from 384 to 192 tokens for this initial device test.
+- Increment Android versionCode to 2 and versionName to 0.1.1-dev.
+
+Install the new APK as an UPDATE over the existing app; do not uninstall.
+A matching signature/application ID preserves the imported model and documents.
+If installation reports a signature conflict, stop and investigate; do not delete app data.
+On the next run, keep the app in the foreground and ask the same RAM/storage question.
+Record the displayed stage, first-answer delay and completion time.
+
+Validation: native source syntax checked against the pinned llama.cpp headers;
+full Android build and actual device speed must still be verified with GitHub Actions
+and the POCO. No guaranteed speedup or bounty qualification is claimed.
+The evidence-required behavior, lack of INTERNET permission and llama.cpp pin are unchanged.
