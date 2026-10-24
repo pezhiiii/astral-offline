@@ -3,6 +3,7 @@
 #include <atomic>
 #include <chrono>
 #include <cstdio>
+#include <unistd.h>
 #include <algorithm>
 #include <codecvt>
 #include <locale>
@@ -21,6 +22,7 @@ static double seconds(Clock::time_point start) { return std::chrono::duration<do
 static std::string phase="Ready", partial, metrics;
 static std::unique_ptr<llama_model,decltype(&llama_model_free)> cached_model(nullptr,llama_model_free);
 static std::string cached_path;
+static unsigned long run_number=0;
 extern "C" JNIEXPORT void JNICALL Java_org_bl3_astral_Engine_release(JNIEnv*,jobject) {
  std::lock_guard<std::mutex> lock(engine_mutex);
  cached_model.reset();cached_path.clear();
@@ -56,6 +58,7 @@ extern "C" JNIEXPORT jbyteArray JNICALL Java_org_bl3_astral_Engine_answer(JNIEnv
  try {
   { std::lock_guard<std::mutex> progress_lock(progress_mutex); partial.clear(); metrics.clear(); }
   const auto started=Clock::now();
+  const auto run=++run_number;
   static std::once_flag initialized;
   std::call_once(initialized,[]{llama_backend_init();});
   auto path=utf8(e,file), system=utf8(e,sys), user=utf8(e,question);
@@ -91,11 +94,15 @@ extern "C" JNIEXPORT jbyteArray JNICALL Java_org_bl3_astral_Engine_answer(JNIEnv
   if(nt<=0) throw std::runtime_error("Tokenization failed");
   int budget=std::clamp((int)max_tokens,1,512);
   if(nt+budget>4096) throw std::runtime_error("Evidence exceeds 4096-token context. Use shorter documents or a shorter question.");
+  const double format_time=seconds(prompt_started);
+  const auto context_started=Clock::now();
   report("Allocating context");
-  auto cp=llama_context_default_params();cp.n_ctx=4096;cp.n_batch=256;cp.n_ubatch=128;
+  auto cp=llama_context_default_params();cp.n_ctx=std::min(4096,((nt+budget+255)/256)*256);cp.n_batch=256;cp.n_ubatch=128;
   cp.n_threads=4;cp.n_threads_batch=4;cp.abort_callback=abort_eval;
   std::unique_ptr<llama_context,decltype(&llama_free)> ctx(llama_init_from_model(model,cp),llama_free);
   if(!ctx) throw std::runtime_error("Insufficient resources for model context");
+  const double context_time=seconds(context_started);
+  const auto evaluation_started=Clock::now();
   for(int i=0;i<nt;i+=256) {
    if(stopped) throw std::runtime_error("Cancelled");
    report("Reading evidence: "+std::to_string(i)+" / "+std::to_string(nt)+" tokens");
@@ -103,7 +110,7 @@ extern "C" JNIEXPORT jbyteArray JNICALL Java_org_bl3_astral_Engine_answer(JNIEnv
    if(llama_decode(ctx.get(),batch)!=0) throw std::runtime_error(stopped?"Cancelled":"Prompt evaluation failed");
   }
   std::unique_ptr<llama_sampler,decltype(&llama_sampler_free)> sampler(llama_sampler_init_greedy(),llama_sampler_free);
-  const double prompt_time=seconds(prompt_started);
+  const double evaluation_time=seconds(evaluation_started);
   const auto generation_started=Clock::now();
   double first_token_time=0; int generated=0;
   bool reached_end=false;
@@ -127,9 +134,10 @@ extern "C" JNIEXPORT jbyteArray JNICALL Java_org_bl3_astral_Engine_answer(JNIEnv
     throw std::runtime_error(stopped?"Cancelled":"Generation failed");
   }
   const double generation_time=seconds(generation_started);
-  char timing[512];
-  std::snprintf(timing,sizeof(timing),"Model: %s\nModel setup: %.1f s\nPrompt & context: %.1f s\nFirst token: %.1f s\nGeneration: %.1f s · %d tokens · %.2f tok/s\nFinish: %s",
-   reused?"reused":"loaded",load_time,prompt_time,first_token_time,generation_time,generated,
+  char timing[1024];
+  std::snprintf(timing,sizeof(timing),"Process: %d · run %lu\nModel: %s\nModel setup: %.1f s\nPrompt formatting: %.2f s\nContext setup: %.1f s · %u slots\nInput: %d tokens · %.1f s · %.2f tok/s\nFirst token: %.1f s\nGeneration: %.1f s · %d tokens · %.2f tok/s\nFinish: %s",
+   static_cast<int>(getpid()),run,reused?"reused":"loaded",load_time,format_time,context_time,cp.n_ctx,
+   nt,evaluation_time,evaluation_time>0?nt/evaluation_time:0,first_token_time,generation_time,generated,
    generation_time>0?generated/generation_time:0,reached_end?"end of answer":"token limit (answer may be incomplete)");
   { std::lock_guard<std::mutex> progress_lock(progress_mutex); metrics=timing; }
   report("Complete");

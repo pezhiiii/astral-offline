@@ -1,0 +1,18 @@
+ASTRAL 0.1.3 prototype update
+Changes:
+- Retain model across Activity destruction; reimport releases it. Process death still loses cache.
+- Add process ID and native run number to diagnose cache loss.
+- Shorter source-only prompt with citations, source instruction isolation and uncertainty rule.
+- Allocate context to input+output budget rounded up to 256 slots, max4096; never truncate source silently.
+- Split prompt formatting, context allocation and input evaluation times; show input count/throughput.
+- Display imported rather than ready before model inference validates compatibility.
+Signing setup FIRST:
+Create repository Actions secret ASTRAL_DEBUG_KEYSTORE_BASE64 with the full contents of the separately supplied ASTRAL_PRIVATE_SIGNING_SECRET.txt.
+Never commit that file or the keystore. Keep a private backup. This is a prototype/debug key, not a production release key.
+Then upload app and docs from this ZIP to the repository root. Update .github/workflows/android.yml with the supplied workflow (hidden folder on Windows).
+The workflow intentionally fails without the secret, so it cannot silently generate another identity.
+The new persistent key differs from installed0.1.2. One final migration or reinstall/reimport will be necessary. Future builds reuse this key as long as the secret remains unchanged.
+Keep installed app and original GGUF/text files until the next APK build is checked. Do not rely on earlier tar restores, which did not restore working sources/model on this device.
+Validation: C++17 -Wall -Wextra syntax check against pinned llama.cpp headers passed; workflow YAML and manifest XML parsed; signing key generated and inspected. No Android SDK available here; full APK build and device speed/quality remain unverified.
+Tests on device: same question twice without leaving; same PID and increasing run number should show reused. Reimport model then expect loaded. Leave/reopen may reuse if process survives. New PID means Android restarted process.
+A short prompt and smaller context may change output quality; compare citations, reasoning and insufficient-evidence behavior. Do not claim bounty compliance from these smoke tests.
