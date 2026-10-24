@@ -1,4 +1,6 @@
 cmake_minimum_required(VERSION 3.22.1)
+# Keep the installable debug APK, but optimize the CPU inference library.
+set(CMAKE_BUILD_TYPE Release CACHE STRING "Native inference build type" FORCE)
 project(astral LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
