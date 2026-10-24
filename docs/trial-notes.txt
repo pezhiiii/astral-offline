@@ -1,0 +1,5 @@
+Synthetic equipment notes for testing Astral. These are fictional, not product recommendations.
+A field camp has 12 people. Each person requires 2 liters of filtered water per day. Its daily filtered-water requirement is therefore 24 liters.
+The Aurora filter supplies at most 18 liters per day and weighs 600 grams. It costs 40 fictional credits. It is insufficient as the camp's only filter.
+The Boreal filter supplies at most 30 liters per day and weighs 900 grams. It costs 65 fictional credits. It meets the camp's daily requirement with a 6-liter margin, assuming operation at rated capacity.
+Both filters require cleaning after every operating day. Neither filter is documented to remove dissolved chemicals. Nothing in these notes establishes medical or real-world safety.
