@@ -1,0 +1,6 @@
+vendor/
+.gradle/
+**/build/
+local.properties
+*.gguf
+*.jks
