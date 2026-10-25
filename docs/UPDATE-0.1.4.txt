@@ -1,0 +1,45 @@
+ASTRAL 0.1.4 experimental prototype
+
+Why: user-supplied 0.1.3 screenshots on POCO X4 Pro show model reuse,
+but 148 input tokens still take 49.2 seconds. A later fresh process took
+182.3 seconds total for a different question. These are individual observations,
+not a controlled benchmark or proof that the phone alone causes the slowdown.
+
+Changes:
+- Retain one inference context and reuse the exact common token prefix.
+- Remove old question/answer suffix before decoding new input. Always decode
+  at least the last input token to refresh logits, even for identical questions.
+- Clear context on model replacement, changed context size, or inference error.
+- If backend cannot remove a partial sequence, clear memory and evaluate afresh.
+- Show total, cached, and newly evaluated input token counts separately.
+- Strengthen source/uncertainty instructions. This does not guarantee compliance.
+- Show an explicit note when a generated answer has no inline source references.
+  The note is a presence check, not validation of citation correctness.
+
+Limits:
+First question still evaluates its entire prompt. Process death loses caches.
+Different context sizes or unrelated sources may prevent useful reuse.
+Keeping context increases idle resident memory; peak RAM remains unmeasured.
+Do not present a repeated-question warm result as cold-start performance.
+
+Install:
+Keep the current app and original GGUF/text files. Upload the app and docs
+folders from this update into the repository root and commit. Leave the
+existing signing workflow and ASTRAL_DEBUG_KEYSTORE_BASE64 secret unchanged.
+Once CI succeeds, install the APK as an update. If Android reports a signature
+conflict, stop and inspect signing; do not uninstall just to bypass it.
+
+Device acceptance checks after CI:
+1. First run: cached input 0. Save complete answer and timings.
+2. Same question without leaving: cached input >0, evaluated input >=1.
+3. Different question with same evidence: verify no previous answer leaks in.
+4. Change/import sources: verify changed evidence is used.
+5. Cancel then retry: fresh evaluation must succeed without stale state.
+6. Reimport model: first run must have no context from the old model.
+Compare factual grounding and source references as well as speed.
+
+Validation: C++17 syntax check with -Wall -Wextra -Werror passed against
+the pinned llama.cpp headers and OpenJDK JNI headers. Manifest XML parsed.
+These changes have not yet been built as an Android APK or tested on-device.
+This remains a prototype; bounty quality, GrapheneOS compatibility and resource
+limits have not been demonstrated.
