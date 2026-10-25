@@ -1,0 +1,20 @@
+ASTRAL 0.1.7: shorter answer instructions
+
+Restores a default maximum of three short sentences, requests direct answers, correct inline source numbers, explicit subtraction with units, and correct direction for minimum capacity comparisons. No hard-coded Atlas/Nova answers, new arithmetic engine, semantic citation verification, or inference changes. Output limit remains 192 tokens. Prompt changes may fail; on-device regression is required.
+
+Upload app/ and docs/ contents at repository root. Keep working workflow and signing secret unchanged. Commit: Shorten grounded answers and clarify minimum requirements
+Download APK from this commit's green build and install as an update. Do not uninstall. Installed version must be 0.1.7-dev (code 8).
+
+Validation here: patch/ZIP integrity and signing configuration preservation only. Android compilation must run in CI. No local model inference or phone validation performed.
+
+Keep unchanged queries:
+1. For a 5-hour trip, which is lighter: Atlas or Nova, and by how many grams? Cite both sources.
+Expected: both have enough runtime, Nova lighter by 300 grams, citations supporting both weights.
+2. Compare Atlas and Nova for a trip requiring at least 7 hours of battery life without charging. Which meets the requirement, and what is the weight trade-off? Cite both sources.
+Expected: Atlas only; 300 grams heavier; both sources.
+3. Which is more waterproof, Atlas or Nova? Cite evidence, or clearly state if the sources do not say.
+Expected: sources insufficient.
+4. For a 9-hour trip without charging, does either Atlas or Nova meet the requirement? Cite both sources.
+Expected: neither.
+
+Record full answers, evidence and cold/warm metrics separately. A correct selection with faulty explanation or citations is not a full pass. 0.1.6 failed the 5-hour test: wrong claim that 8-hour Atlas cannot cover 5 hours, no bracket citations, output truncated at 192 tokens, total 117.7 seconds. Do not discard this failure when reporting results. Tiny fictional tests do not demonstrate bounty-level quality.
