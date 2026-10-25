@@ -1,0 +1,47 @@
+ASTRAL 0.1.5: explicit persistent signing
+
+Inspection of the two supplied APKs:
+astral-fixed.apk: package org.bl3.astral, version 0.1.4-dev, code 5
+Signer certificate SHA-256:
+26e233c96742ad06be0f4fb68fc6c8b6608400baaf32c94b3d1b53280d9dccda
+astral-015.apk: package org.bl3.astral, version 0.1.5-dev, code 6
+Signer certificate SHA-256:
+f8c7ce998c27c20c298ffbfa86a90f1cd44fc5e5ee5922be52fb1619045ab5a9
+
+The certificates differ. Renaming files or repeating adb install cannot make
+this pair compatible. APK inspection alone does not identify which workflow
+or secret produced each file, or recover either private signing key.
+
+Fix:
+Gradle debug signing now explicitly uses .signing/astral-debug.keystore in
+the repository root. CI restores the existing secret to that exact path.
+CI verifies the APK cryptographically with apksigner, then compares its public
+certificate digest to the certificate exported from the restored key. It only
+uploads the APK and public signing report after both checks succeed.
+Missing/invalid key or mismatched signer fails the build. Keep the secret and
+its private backup unchanged. Never upload .signing, private keys or secret TXT.
+
+Manual GitHub upload:
+Upload app, docs, tools and .gitignore from this ZIP to repository root.
+IMPORTANT: replace .github/workflows/android.yml too. This folder is hidden
+on Windows; open that exact file on GitHub, click Edit and paste the complete
+replacement workflow from the ZIP if necessary.
+Commit: Explicitly bind and verify persistent APK signing
+
+After building, open the step named 'Verify APK uses persistent signing key'.
+It must succeed. Download the APK and apk-signing-certificate.txt from THAT run.
+Keep installed 0.1.4 until migration is planned. The fixed build is NOT expected
+to update an APK signed with an unavailable previous key. One migration may
+still be needed; first preserve original model and all three source files.
+Future in-place updates require the same secret/key and nondecreasing version.
+
+Local builds:
+Supply your own prototype debug keystore at the same .signing path, alias
+androiddebugkey and passwords android. A different local key cannot update the
+community CI APK. For reproducibility, code can be built with a personal key;
+do not distribute or commit the shared private CI key.
+
+Validation here: public certificates and binary manifest versions extracted
+from both actual APKs; comparison script positive/negative regression checks;
+workflow YAML parsed and shell syntax checked. Full Android CI build and device
+install remain to be verified. Existing retrieval/model code is unchanged.
