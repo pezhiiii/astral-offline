@@ -25,6 +25,22 @@ jobs:
 
       - run: python3 tools/bootstrap.py
 
+      - name: Restore persistent prototype signing key
+        shell: bash
+        env:
+          ASTRAL_KEY: ${{ secrets.ASTRAL_DEBUG_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$ASTRAL_KEY" ]; then
+            echo "Missing repository secret ASTRAL_DEBUG_KEYSTORE_BASE64"
+            exit 1
+          fi
+          mkdir -p "$HOME/.android"
+          printf '%s' "$ASTRAL_KEY" | base64 --decode > "$HOME/.android/debug.keystore"
+          keytool -list \
+            -keystore "$HOME/.android/debug.keystore" \
+            -storepass android \
+            -alias androiddebugkey > /dev/null
+
       - run: gradle --no-daemon :app:assembleDebug
 
       - uses: actions/upload-artifact@v4
