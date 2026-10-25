@@ -1,0 +1,19 @@
+ASTRAL 0.1.6 — answer instruction update
+
+Changes: explicitly request all question parts, numerical differences with units, and citations attached to the facts they support. Remove the default three-sentence limit so brevity does not take priority over completeness. No answer is hard-coded; there is no new arithmetic tool or citation verifier. Model compliance remains probabilistic.
+
+Install: upload app/ contents at the repository root, merging into existing app/. Leave the existing working workflow and signing secret unchanged. Commit, download the new green build, and install as an update. Do not uninstall or clear app data. Persistent signing configuration is preserved.
+
+Validation: version and patch integrity checked locally. A full Android build and real-device inference were not run here. CI and phone testing are required.
+
+Regression questions (use unchanged, without giving the answer or citation mapping):
+1. For a 5-hour trip, which is lighter: Atlas or Nova, and by how many grams? Cite both sources.
+Expected: Nova, 300 grams lighter; cite the actual displayed Atlas and Nova source numbers correctly.
+2. Compare Atlas and Nova for a trip requiring at least 7 hours of battery life without charging. Which meets the requirement, and what is the weight trade-off? Cite both sources.
+Expected: only Atlas meets duration; 300 grams heavier; both correct citations.
+3. Which is more waterproof, Atlas or Nova? Cite evidence, or clearly state if the sources do not say.
+Expected: insufficient information.
+4. Does the source prove that restarting apps are caused by insufficient RAM? Explain and cite the source.
+Expected: no; RAM text does not establish the cause.
+
+Record cold and warm timings separately, full answer, evidence and failures. Earlier 0.1.5 natural-language arithmetic/citation failure remains a failure; prompted retries do not replace it. These tiny fictional tests do not demonstrate bounty-level research quality or offline operation by themselves.
