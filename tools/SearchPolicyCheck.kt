@@ -1,0 +1,21 @@
+package org.bl3.astral
+
+fun main() {
+ val ram="RAM is temporary working memory used by running applications. Its contents are normally lost when power is turned off. Storage keeps applications and files even when power is off. More RAM helps a device work with more active data at once. More storage provides room for more files, but does not replace RAM."
+ val atlas="Fictional test data. Atlas weighs 900 grams. Atlas runs for 8 hours per charge. Atlas works offline."
+ val nova="Fictional test data. Nova weighs 600 grams. Nova runs for 5 hours per charge. Nova works offline."
+ val query="Compare Atlas and Nova for a trip requiring at least 7 hours of battery life without charging. Which meets the requirement, and what is the weight trade-off? Cite both sources."
+ val terms=SearchPolicy.terms(query)
+ check(SearchPolicy.score(terms,"memory.txt",ram)==0) { "Unrelated RAM passage retained" }
+ check(SearchPolicy.score(terms,"111.txt",atlas)>0)
+ check(SearchPolicy.score(terms,"22233.txt",nova)>0)
+ check(SearchPolicy.score(SearchPolicy.terms("Explain the difference between RAM and storage in three short sentences."),"memory.txt",ram)>0)
+ check(SearchPolicy.score(SearchPolicy.terms("art"),"earth.txt","part cart earth")==0) { "Substring false positive" }
+ check(SearchPolicy.score(SearchPolicy.terms("RAM"),"memory.txt","ram")>0)
+ check(SearchPolicy.score(SearchPolicy.terms("حافظه"),"test.txt","این حافظه موقت است")>0)
+ check(SearchPolicy.terms("the and cite both sources").isEmpty())
+ check(SearchPolicy.score(SearchPolicy.terms("zephyrium"),"memory.txt",ram)==0)
+ check(SearchPolicy.terms("\" OR * (ram)")==listOf("ram"))
+ println("Search policy regression checks passed: multi-source inclusion, unrelated-source exclusion, RAM lookup, whole-word boundaries, case, Unicode, empty query, unknown term, punctuation.")
+ println("FTS_TERMS="+terms.joinToString("|"))
+}

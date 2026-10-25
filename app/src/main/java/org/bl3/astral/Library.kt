@@ -2,7 +2,6 @@ package org.bl3.astral
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
-import java.util.Locale
 
 data class Passage(val id: Long, val title: String, val text: String)
 class Library(context: Context): SQLiteOpenHelper(context, "knowledge.db", null, 1) {
@@ -29,17 +28,16 @@ class Library(context: Context): SQLiteOpenHelper(context, "knowledge.db", null,
  }
  fun count(): Long = readableDatabase.rawQuery("SELECT count(*) FROM passages",null).use { it.moveToFirst(); it.getLong(0) }
  fun search(question: String): List<Passage> {
-  val stop=setOf("what","which","the","is","are","of","a","an","and","to","in","how","does","do","for","between","compare","explain")
-  val terms=Regex("[\\p{L}\\p{N}]{2,}").findAll(question.lowercase(Locale.ROOT)).map { it.value }.filter { it !in stop }.distinct().take(18).toList()
+  val terms=SearchPolicy.terms(question)
   if(terms.isEmpty()) return emptyList()
   val match=terms.joinToString(" OR ") { "\"$it\"" }
   val candidates=mutableListOf<Passage>()
-  readableDatabase.rawQuery("SELECT rowid,title,body FROM passages WHERE passages MATCH ? LIMIT 120",arrayOf(match)).use { c ->
+  readableDatabase.rawQuery("SELECT rowid,title,body FROM passages WHERE passages MATCH ? ORDER BY rowid LIMIT 120",arrayOf(match)).use { c ->
    while(c.moveToNext()) candidates+=Passage(c.getLong(0),c.getString(1),c.getString(2))
   }
-  return candidates.sortedByDescending { p ->
-   val body=p.text.lowercase(Locale.ROOT); val title=p.title.lowercase(Locale.ROOT)
-   terms.sumOf { t -> (if(title.contains(t)) 4 else 0) + (if(body.contains(t)) 1 else 0) }
-  }.distinctBy { it.text }.take(4)
+  return candidates.map { it to SearchPolicy.score(terms,it.title,it.text) }
+   .filter { it.second>0 }
+   .sortedWith(compareByDescending<Pair<Passage,Int>> { it.second }.thenBy { it.first.id })
+   .map { it.first }.distinctBy { it.text }.take(4)
  }
 }

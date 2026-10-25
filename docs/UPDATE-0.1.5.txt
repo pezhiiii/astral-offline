@@ -1,0 +1,49 @@
+ASTRAL 0.1.5 experimental retrieval update
+
+Problem observed on device:
+The Atlas/Nova comparison retrieved an unrelated RAM passage. Common query
+words, including 'off' from 'trade-off', matched that passage. Ranking also
+used substring matching, so parts of unrelated words could boost candidates.
+
+Changes:
+- Shared Unicode word tokenizer for query extraction and candidate scoring.
+- Expanded English stop words remove common grammatical/output instructions.
+- Whole-word scoring in title/body instead of substring matches.
+- Exclude candidates scoring zero; deterministic row ID tie break.
+- Keep up to 4 passages and the existing bounded 120-candidate FTS query.
+- No database migration, model replacement, signing change or data deletion.
+- Native context cache from 0.1.4 is unchanged.
+
+Validation completed here:
+Production SearchPolicy.kt compiled with Kotlin 2.1.10 and ran on the JVM.
+Library.kt and SearchPolicy.kt also compiled together against Android API
+stubs (legacy compile check, not the actual SDK35/Gradle build).
+Regression checks cover Atlas/Nova inclusion, RAM exclusion for the comparison,
+RAM lookup, substring false positives, case, Unicode, empty/unknown queries,
+and punctuation. SQLite FTS4 unicode61 fixture using those production query
+terms returned both comparison passages and excluded RAM while keeping all
+three stored passages. Full Android build/install and speed are not yet tested.
+
+Limitations:
+This remains lexical search, not semantic retrieval. English stop words may
+reduce recall for some questions. Relevant material beyond the first 120
+matching rows can be missed. Whole-word scoring does not solve synonyms or
+inflections. The device comparison previously took 208.4 seconds; reducing
+irrelevant input does not guarantee a particular speed improvement.
+
+Upload:
+Upload app, docs and tools folders from this ZIP into the repository root.
+Keep the existing .github signing workflow and repository secret unchanged.
+Commit suggestion: Filter irrelevant retrieval terms and match whole words
+After CI succeeds, install the new APK over 0.1.4. Do not uninstall or clear
+data. If a signing conflict appears, inspect the workflow/artifact first.
+
+Device check:
+Keep memory.txt and both fictional comparison documents imported. Run the
+same Atlas/Nova question once. LOCAL EVIDENCE should include both fictional
+documents and exclude memory.txt. Check the generated answer, citations and
+timings; report cold and warm timings separately. No model re-download needed.
+
+Optional standalone regression with Kotlin installed:
+kotlinc app/src/main/java/org/bl3/astral/SearchPolicy.kt tools/SearchPolicyCheck.kt -include-runtime -d search-check.jar
+java -jar search-check.jar

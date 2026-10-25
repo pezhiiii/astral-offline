@@ -4,7 +4,7 @@ android {
  compileSdk = 35
  defaultConfig {
   applicationId = "org.bl3.astral"; minSdk = 28; targetSdk = 35
-  versionCode = 5; versionName = "0.1.4-dev"
+  versionCode = 6; versionName = "0.1.5-dev"
   ndk { abiFilters += "arm64-v8a" }
   externalNativeBuild { cmake { cppFlags += "-std=c++17" } }
  }

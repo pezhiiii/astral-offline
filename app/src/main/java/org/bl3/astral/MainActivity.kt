@@ -48,7 +48,7 @@ class MainActivity: Activity() {
   super.onCreate(state); library=Library(this)
   val root=LinearLayout(this).apply { orientation=1; setPadding(28,32,28,20); setBackgroundColor(Color.rgb(9,15,30)) }
   val scroll=ScrollView(this);scroll.addView(root);setContentView(scroll)
-  root.addView(TextView(this).apply { text="A S T R A L · 0.1.4"; textSize=29f; setTextColor(Color.WHITE) })
+  root.addView(TextView(this).apply { text="A S T R A L · 0.1.5"; textSize=29f; setTextColor(Color.WHITE) })
   root.addView(Scout(this),LinearLayout.LayoutParams(-1,180))
   root.addView(TextView(this).apply { text="Your knowledge. Beyond the signal."; textSize=16f;setTextColor(Color.CYAN) })
   status=TextView(this).apply { setTextColor(Color.LTGRAY);setPadding(0,18,0,18) };root.addView(status)
