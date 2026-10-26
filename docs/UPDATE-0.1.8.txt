@@ -1,0 +1,25 @@
+ASTRAL 0.1.8 — conservative source-based numerical calculator
+
+This release adds a deterministic runtime/weight path BEFORE language-model generation. No Atlas/Nova names or numerical answers are embedded in production code. BigDecimal comparisons and subtraction operate on source values; bracket citations use the current retrieved-source order. Output is visibly labelled CALCULATED FROM LOCAL EVIDENCE — no language model used. This mode can operate without an imported model.
+
+IMPORTANT SCOPE: this is a narrow English template calculator, not general numeric reasoning or semantic source verification. It accepts only the three full question templates below (case/whitespace insensitive), with two single-token ASCII names, positive decimal hours and optionally weights in grams. Source passages must consist entirely of simple NAME runs for NUMBER hours per charge., NAME weighs NUMBER grams., NAME works offline. statements, with optional Fictional test data. prefix. Unknown qualifiers, ranges, negation, differing units, conflicting/duplicate facts, missing entities and extra requests decline calculation. Facts split across passages are not merged. No unit conversions. One unparseable retrieved passage declines the calculator. Unsupported inputs use the existing retrieval/model path, which can still make mistakes; they are NOT labelled calculated.
+
+Supported question templates (replace entity names and hours):
+For a 9-hour trip without charging, does either Atlas or Nova meet the requirement? Cite both sources.
+For a 5-hour trip, which is lighter: Atlas or Nova, and by how many grams? Cite both sources.
+Compare Atlas and Nova for a trip requiring at least 7 hours of battery life without charging. Which meets the requirement, and what is the weight trade-off? Cite both sources.
+
+Source extraction is intentionally strict to avoid silently interpreting qualified prose. A longer-term structured tool interface and broader retrieval/corpus evaluation are still needed. Do not present the fast calculator path as language-model speed or as proof of bounty research quality.
+
+Validation performed: production NumericEvidence.kt and tools/NumericEvidenceCheck.kt compiled using Kotlin 2.1.10 and ran on Java 17. Checks passed for 5/7/8/9-hour boundaries, decimals, equal weights, different entity names and values, citation reordering, zero/missing/conflicting/ambiguous/ranged/negated facts, unsupported units and requests. Full Android build and real-phone testing remain pending. Existing signing configuration, database and model handling are preserved.
+
+Reproduce regression checks with an installed Kotlin compiler:
+kotlinc app/src/main/java/org/bl3/astral/NumericEvidence.kt tools/NumericEvidenceCheck.kt -include-runtime -d numeric-check.jar
+java -jar numeric-check.jar
+
+Upload app/, tools/, docs/ from this ZIP at repository root. Do not change workflow or signing secret. Commit: Add conservative source-based runtime and weight calculations
+Wait for green CI, download its artifact, install APK as update (do not uninstall). Verify 0.1.8-dev, code 9. Preserve sources and GGUF.
+
+Phone acceptance: use the unchanged 9-hour question first; expected both 8 < 9 and 5 < 9, neither eligible, correct source references, calculated label. Then try 5 hours (both eligible), 7 hours (Atlas only), weight difference 300 grams. Create fresh sources with different names/values to ensure generality within the template. Confirm unsupported waterproof question still uses the ordinary path and states insufficient evidence. Record actual timings and whether model or calculator was used.
+
+0.1.7 evidence: 5-hour weight question correct in 59.5 seconds cold; 9-hour question incorrect in 63.5 seconds with a new process. Preserve failures in reporting. These fictional examples are diagnostics, not a representative research benchmark. Offline operation, peak RAM/storage, GrapheneOS compatibility and the bounty quality threshold still require validation.
