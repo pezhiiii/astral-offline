@@ -32,10 +32,15 @@ class Library(context: Context): SQLiteOpenHelper(context, "knowledge.db", null,
   if(terms.isEmpty()) return emptyList()
   val match=terms.joinToString(" OR ") { "\"$it\"" }
   val candidates=mutableListOf<Passage>()
-  readableDatabase.rawQuery("SELECT rowid,title,body FROM passages WHERE passages MATCH ? ORDER BY rowid LIMIT 120",arrayOf(match)).use { c ->
-   while(c.moveToNext()) candidates+=Passage(c.getLong(0),c.getString(1),c.getString(2))
+  // Search the most specific query first, then retain broad matches for multi-source questions.
+  // Both passes are bounded; neither is a complete ranking of a large corpus.
+  val queries=if(terms.size>1) listOf(terms.joinToString(" AND ") { "\"$it\"" },match) else listOf(match)
+  for (query in queries) {
+   readableDatabase.rawQuery("SELECT rowid,title,body FROM passages WHERE passages MATCH ? ORDER BY rowid LIMIT 120",arrayOf(query)).use { c ->
+    while(c.moveToNext()) candidates+=Passage(c.getLong(0),c.getString(1),c.getString(2))
+   }
   }
-  return candidates.map { it to SearchPolicy.score(terms,it.title,it.text) }
+  return candidates.distinctBy { it.id }.map { it to SearchPolicy.score(terms,it.title,it.text) }
    .filter { it.second>0 }
    .sortedWith(compareByDescending<Pair<Passage,Int>> { it.second }.thenBy { it.first.id })
    .map { it.first }.distinctBy { it.text }.take(4)
