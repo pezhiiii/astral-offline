@@ -15,12 +15,12 @@ object NumericEvidence {
  private val lighter = Regex("For a $number-hour trip, which is lighter: $name or $name, and by how many grams\\? Cite both sources\\.", RegexOption.IGNORE_CASE)
  private val compare = Regex("Compare $name and $name for a trip requiring at least $number hours of battery life without charging\\. Which meets the requirement, and what is the weight trade-off\\? Cite both sources\\.", RegexOption.IGNORE_CASE)
 
- private fun parse(text: String, citation: Int): Facts? {
+ private fun parse(text: String, citation: Int): List<Facts>? {
   // Consume the entire passage: unknown qualifiers, ranges, negation and instructions decline.
   var rest = text.trim().replace(Regex("\\s+"), " ")
-  if(rest.startsWith("Fictional test data. ", true)) rest=rest.substring("Fictional test data. ".length)
   val values=mutableListOf<Triple<String,String,BigDecimal>>()
   while(rest.isNotEmpty()) {
+   if(rest.startsWith("Fictional test data.", true)) { rest=rest.substring("Fictional test data.".length).trimStart(); continue }
    val r=runtime.find(rest)?.takeIf { it.range.first==0 }
    val w=weight.find(rest)?.takeIf { it.range.first==0 }
    val o=offline.find(rest)?.takeIf { it.range.first==0 }
@@ -29,12 +29,15 @@ object NumericEvidence {
    values+=Triple(m.groupValues[1],kind,if(o!=null) BigDecimal.ZERO else m.groupValues[2].toBigDecimal())
    rest=rest.substring(m.range.last+1).trimStart()
   }
-  if(values.isEmpty() || values.map { it.first.lowercase() }.distinct().size!=1) return null
-  if(values.groupBy { it.second }.any { it.value.size>1 }) return null
-  val h=values.singleOrNull { it.second=="hours" }?.third?:return null
-  val g=values.singleOrNull { it.second=="grams" }?.third
-  if(h<=BigDecimal.ZERO || (g!=null && g<=BigDecimal.ZERO)) return null
-  return Facts(values.first().first,h,g,citation)
+  if(values.isEmpty()) return null
+  val groups=values.groupBy { it.first.lowercase(java.util.Locale.ROOT) }
+  return groups.values.map { group ->
+   if(group.groupBy { it.second }.any { it.value.size>1 }) return null
+   val h=group.singleOrNull { it.second=="hours" }?.third?:return null
+   val g=group.singleOrNull { it.second=="grams" }?.third
+   if(h<=BigDecimal.ZERO || (g!=null && g<=BigDecimal.ZERO)) return null
+   Facts(group.first().first,h,g,citation)
+  }
  }
 
  private fun fmt(n: BigDecimal)=n.stripTrailingZeros().toPlainString()
@@ -48,7 +51,7 @@ object NumericEvidence {
   else { required=match.groupValues[1].toBigDecimal(); names=listOf(match.groupValues[2],match.groupValues[3]) }
   if(required<=BigDecimal.ZERO || names[0].equals(names[1],true)) return null
   // If any retrieved passage cannot be fully parsed, leave the question to the ordinary path.
-  val all=sources.mapIndexed { i,s -> parse(s.text,i+1)?:return null }
+  val all=sources.mapIndexed { i,s -> parse(s.text,i+1)?:return null }.flatten()
   val selected=names.map { n -> all.filter { it.name.equals(n,true) }.singleOrNull()?:return null }
   if(l!=null || c!=null) { if(selected.any { it.grams==null }) return null }
   val checks=selected.joinToString("\n") {

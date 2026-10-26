@@ -24,5 +24,11 @@ fun main() {
  check(ask("9",listOf(a,b,"Atlas costs 5 dollars."))==null)
  check(NumericEvidence.answer("Which is more waterproof, Atlas or Nova?",listOf(a,b).map { NumericEvidence.Source(it) })==null)
  check(NumericEvidence.answer("For a 5-hour trip, which is lighter: Atlas or Nova, and by how many grams? Cite both sources. Also compare cost.",listOf(a,b).map { NumericEvidence.Source(it) })==null)
+ val multi="Fictional test data. Orion weighs 450 grams. Orion runs for 6.5 hours per charge. Orion works offline. Fictional test data. Vega weighs 700 grams. Vega runs for 10 hours per charge. Vega works offline."
+ val q="For a 7-hour trip without charging, does either Orion or Vega meet the requirement? Cite both sources."
+ val multiAnswer=NumericEvidence.answer(q,listOf(NumericEvidence.Source(multi)))!!
+ check(multiAnswer.contains("Only Vega meets") && multiAnswer.contains("6.5 hours < 7 hours") && multiAnswer.contains("10 hours >= 7 hours") && multiAnswer.count { it == '[' } == 2)
+ check(NumericEvidence.answer(q,listOf(NumericEvidence.Source(multi + " Vega runs for 4 hours per charge.")))==null)
+ check(NumericEvidence.answer(q,listOf(NumericEvidence.Source(multi + " Unless it rains.")))==null)
  println("NumericEvidence checks passed: boundaries, decimals, different entities/values, citation order, unsupported and ambiguous evidence.")
 }

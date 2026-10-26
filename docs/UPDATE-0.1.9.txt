@@ -1,0 +1,5 @@
+0.1.9: allow several named objects in one parsed source passage; preserve same source citation. Duplicate facts, unknown qualifiers, contradictory records, unsupported language or missing data decline calculation and fall back to the model. Exact question templates and strict source grammar remain limitations. No model is used for calculated answers.
+
+Kotlin 2.1.10 JVM checks passed for multi-entity and previous cases, conflicting values and unknown qualifiers. Android build and on-device validation pending.
+
+Upload app, tools and docs to repository root, preserving workflow and signing secret. Install green CI APK as update; do not uninstall. Test the existing Orion/Vega question and verify [1] for both, then test a contradictory passage. The 0.1.8 result came from the language model, not the calculator.
