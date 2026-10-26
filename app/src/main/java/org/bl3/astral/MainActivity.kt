@@ -22,6 +22,7 @@ class MainActivity: Activity() {
  private lateinit var ask: Button
  private lateinit var modelButton: Button
  private lateinit var documentButton: Button
+ private lateinit var packButton: Button
  private val worker=Executors.newSingleThreadExecutor()
  private val progressHandler=Handler(Looper.getMainLooper())
  private var showingProgress=false
@@ -48,13 +49,14 @@ class MainActivity: Activity() {
   super.onCreate(state); library=Library(this)
   val root=LinearLayout(this).apply { orientation=1; setPadding(28,32,28,20); setBackgroundColor(Color.rgb(9,15,30)) }
   val scroll=ScrollView(this);scroll.addView(root);setContentView(scroll)
-  root.addView(TextView(this).apply { text="A S T R A L · 0.1.11"; textSize=29f; setTextColor(Color.WHITE) })
+  root.addView(TextView(this).apply { text="A S T R A L · 0.1.12"; textSize=29f; setTextColor(Color.WHITE) })
   root.addView(Scout(this),LinearLayout.LayoutParams(-1,180))
   root.addView(TextView(this).apply { text="Your knowledge. Beyond the signal."; textSize=16f;setTextColor(Color.CYAN) })
   status=TextView(this).apply { setTextColor(Color.LTGRAY);setPadding(0,18,0,18) };root.addView(status)
   fun button(label: String, action: ()->Unit): Button = Button(this).apply { text=label;setOnClickListener { action() };root.addView(this) }
   modelButton=button("1 · Import local GGUF model") { pick(10,"*/*") }
   documentButton=button("2 · Add UTF-8 text document") { pick(11,"text/*") }
+  packButton=button("3 · Import offline knowledge pack") { pick(12,"*/*") }
   question=EditText(this).apply { hint="Ask a research question…";setTextColor(Color.WHITE);setHintTextColor(Color.GRAY);minLines=2 };root.addView(question)
   ask=button("Research offline") { research() }
   button("Stop generation") { runCatching { Engine.cancel() };status.text="Stop requested" }
@@ -67,7 +69,7 @@ class MainActivity: Activity() {
  private fun busy(value: Boolean) {
   if(value) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
   else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-  ask.isEnabled=!value;modelButton.isEnabled=!value;documentButton.isEnabled=!value }
+  ask.isEnabled=!value;modelButton.isEnabled=!value;documentButton.isEnabled=!value;packButton.isEnabled=!value }
  private fun refresh() { status.text="OFFLINE · ${library.count()} passages · Model ${if(model.exists()) "imported" else "missing"}" }
  @Deprecated("Platform callback")
  override fun onActivityResult(requestCode: Int,resultCode: Int,data: Intent?) {
@@ -97,6 +99,21 @@ class MainActivity: Activity() {
       require(staging.renameTo(model)) { "Cannot replace model" }
      } finally { staging.delete() }
      ui { output.text="Model imported. Compatibility is checked at first inference." }
+    } else if(requestCode==12) {
+     val staging=File(filesDir,"knowledge-pack.import")
+     try {
+      contentResolver.openInputStream(uri)!!.use { input -> staging.outputStream().use { out ->
+       val buffer=ByteArray(1024*1024); var total=0L
+       while(true) { val n=input.read(buffer); if(n<0) break; total+=n
+        require(total + model.length() + getDatabasePath("knowledge.db").length() <= 45_000_000_000L) { "Pack and local assets exceed 45 GB limit" }
+        require(StatFs(filesDir.path).availableBytes > n + 256_000_000L) { "Insufficient free storage" }
+        out.write(buffer,0,n)
+       }
+      } }
+      library.validatePack(staging)
+      require(staging.renameTo(library.packFile())) { "Cannot replace knowledge pack" }
+      ui { output.text="Offline knowledge pack imported. Search is ready." }
+     } finally { staging.delete() }
     } else if(requestCode==11) {
      var title="Imported document"
      contentResolver.query(uri,arrayOf(OpenableColumns.DISPLAY_NAME),null,null,null)?.use { if(it.moveToFirst()) title=it.getString(0) }

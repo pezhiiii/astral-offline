@@ -4,7 +4,15 @@ import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 
 data class Passage(val id: Long, val title: String, val text: String)
-class Library(context: Context): SQLiteOpenHelper(context, "knowledge.db", null, 1) {
+class Library(private val context: Context): SQLiteOpenHelper(context, "knowledge.db", null, 1) {
+ private val pack get()=java.io.File(context.filesDir,"knowledge-pack.db")
+ fun packFile()=pack
+ fun validatePack(file: java.io.File) {
+  SQLiteDatabase.openDatabase(file.path,null,SQLiteDatabase.OPEN_READONLY).use { db ->
+   db.rawQuery("SELECT title,body FROM passages LIMIT 1",null).use { it.moveToFirst() }
+   db.rawQuery("SELECT rowid FROM passages WHERE passages MATCH ? LIMIT 1",arrayOf("astral" )).use { it.moveToFirst() }
+  }
+ }
  override fun onCreate(db: SQLiteDatabase) {
   db.execSQL("CREATE VIRTUAL TABLE passages USING fts4(title, body, tokenize=unicode61)")
  }
@@ -35,11 +43,15 @@ class Library(context: Context): SQLiteOpenHelper(context, "knowledge.db", null,
   // Search the most specific query first, then retain broad matches for multi-source questions.
   // Both passes are bounded; neither is a complete ranking of a large corpus.
   val queries=if(terms.size>1) listOf(terms.joinToString(" AND ") { "\"$it\"" },match) else listOf(match)
-  for (query in queries) {
-   readableDatabase.rawQuery("SELECT rowid,title,body FROM passages WHERE passages MATCH ? ORDER BY rowid LIMIT 120",arrayOf(query)).use { c ->
-    while(c.moveToNext()) candidates+=Passage(c.getLong(0),c.getString(1),c.getString(2))
+  val databases=mutableListOf(readableDatabase)
+  val external=if(pack.exists()) SQLiteDatabase.openDatabase(pack.path,null,SQLiteDatabase.OPEN_READONLY) else null
+  if(external!=null) databases.add(external)
+  try { for ((dbIndex,db) in databases.withIndex()) for (query in queries) {
+   db.rawQuery("SELECT rowid,title,body FROM passages WHERE passages MATCH ? ORDER BY rowid LIMIT 120",arrayOf(query)).use { c ->
+    while(c.moveToNext()) candidates+=Passage(if(dbIndex==0) c.getLong(0) else -c.getLong(0),c.getString(1),c.getString(2))
    }
   }
+  } finally { external?.close() }
   return candidates.distinctBy { it.id }.map { it to SearchPolicy.score(terms,it.title,it.text) }
    .filter { it.second>0 }
    .sortedWith(compareByDescending<Pair<Passage,Int>> { it.second }.thenBy { it.first.id })
