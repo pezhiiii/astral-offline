@@ -48,7 +48,7 @@ class MainActivity: Activity() {
   super.onCreate(state); library=Library(this)
   val root=LinearLayout(this).apply { orientation=1; setPadding(28,32,28,20); setBackgroundColor(Color.rgb(9,15,30)) }
   val scroll=ScrollView(this);scroll.addView(root);setContentView(scroll)
-  root.addView(TextView(this).apply { text="A S T R A L · 0.1.9"; textSize=29f; setTextColor(Color.WHITE) })
+  root.addView(TextView(this).apply { text="A S T R A L · 0.1.10"; textSize=29f; setTextColor(Color.WHITE) })
   root.addView(Scout(this),LinearLayout.LayoutParams(-1,180))
   root.addView(TextView(this).apply { text="Your knowledge. Beyond the signal."; textSize=16f;setTextColor(Color.CYAN) })
   status=TextView(this).apply { setTextColor(Color.LTGRAY);setPadding(0,18,0,18) };root.addView(status)
@@ -134,7 +134,8 @@ class MainActivity: Activity() {
      }
      val answer=String(Engine.answer(model.path,system,q,192),Charsets.UTF_8)
      val timings=String(Engine.metrics(),Charsets.UTF_8)
-     val citationNote=if(Regex("\\[\\d+\\]").containsMatchIn(answer)) "" else "\n\nCitation check: this answer has no inline source references. Verify its claims against the evidence below."
+     val refs=Regex("\\[(\\d+)\\]").findAll(answer).map { it.groupValues[1].toIntOrNull() }.toList()
+     val citationNote=when { refs.isEmpty() -> "\n\nCitation check: no inline source references. Verify claims against the evidence below."; refs.any { it == null || it < 1 || it > hits.size } -> "\n\nCitation check: an invalid source number was cited. Verify the answer against the evidence below."; else -> "" }
      ui { output.text="$answer$citationNote\n\nLOCAL EVIDENCE\n$sources\n\n$timings\n\nElapsed: ${"%.1f".format((System.nanoTime()-started)/1e9)} s" }
     } else ui { output.text="RETRIEVAL ONLY — import a GGUF model for synthesis.\n\n$sources" }
    } catch(e: Throwable) { ui { output.text="Research failed: ${e.message}" } }

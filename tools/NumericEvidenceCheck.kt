@@ -30,5 +30,7 @@ fun main() {
  check(multiAnswer.contains("Only Vega meets") && multiAnswer.contains("6.5 hours < 7 hours") && multiAnswer.contains("10 hours >= 7 hours") && multiAnswer.count { it == '[' } == 2)
  check(NumericEvidence.answer(q,listOf(NumericEvidence.Source(multi + " Vega runs for 4 hours per charge.")))==null)
  check(NumericEvidence.answer(q,listOf(NumericEvidence.Source(multi + " Unless it rains.")))==null)
+ val combined=NumericEvidence.answer("For a 7-hour trip, compare Orion and Vega on battery life and weight. Which meets the runtime requirement, and how much heavier is it? Cite the evidence.",listOf(NumericEvidence.Source(multi)))!!
+ check(combined.contains("Only Vega meets") && combined.contains("250 grams lighter"))
  println("NumericEvidence checks passed: boundaries, decimals, different entities/values, citation order, unsupported and ambiguous evidence.")
 }
