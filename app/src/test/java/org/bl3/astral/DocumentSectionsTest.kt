@@ -14,9 +14,9 @@ class DocumentSectionsTest {
   val text="Collection intro\n\nARTICLE: Ecosystem\nSOURCE: https://example.org/eco\nfirst\n\nARTICLE: Solar System\nSOURCE: https://example.org/solar\nsecond"
   val sections=DocumentSections.split("wiki.txt",text)
   assertEquals(3,sections.size)
-  assertEquals("wiki.txt / Ecosystem",sections[1].title)
+  assertEquals("wiki.txt / Ecosystem — https://example.org/eco",sections[1].title)
   assertTrue(sections[1].body.contains("https://example.org/eco"))
   assertFalse(sections[1].body.contains("second"))
-  assertEquals("wiki.txt / Solar System",sections[2].title)
+  assertEquals("wiki.txt / Solar System — https://example.org/solar",sections[2].title)
  }
 }

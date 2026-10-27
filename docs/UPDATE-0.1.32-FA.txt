@@ -1,0 +1,1 @@
+Astral 0.1.32-dev retains the declared source URL in each section title for compatible ARTICLE/SOURCE documents. Already imported files are unchanged; importing again can create duplicates. A Python regex simulation and ZIP integrity check were run. Kotlin, Android build and device execution were not run. Preserve the existing signing key.
