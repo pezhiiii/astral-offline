@@ -26,6 +26,8 @@ class MainActivity: Activity() {
  private lateinit var modelButton: Button
  private lateinit var documentButton: Button
  private lateinit var packButton: Button
+ private lateinit var threadsButton: Button
+ private var cpuThreads=4
  private val worker=Executors.newSingleThreadExecutor()
  private val progressHandler=Handler(Looper.getMainLooper())
  private var showingProgress=false
@@ -73,6 +75,12 @@ class MainActivity: Activity() {
   };root.addView(question,LinearLayout.LayoutParams(-1,-2).apply { setMargins(0,12,0,8) })
   quick=button("Quick source lookup") { quickLookup() };quick.background=rounded(Color.rgb(0,127,137),22f)
   ask=button("Generate answer with model") { research() }
+  cpuThreads=getPreferences(MODE_PRIVATE).getInt("cpu_threads",4).let { if(it in listOf(2,4,6)) it else 4 }
+  threadsButton=button("CPU threads: $cpuThreads") {
+   cpuThreads=when(cpuThreads) { 2 -> 4; 4 -> 6; else -> 2 }
+   threadsButton.text="CPU threads: $cpuThreads"
+   getPreferences(MODE_PRIVATE).edit().putInt("cpu_threads",cpuThreads).apply()
+  }
   button("Stop generation") { runCatching { Engine.cancel() };status.text="Stop requested" }
   output=TextView(this).apply { setTextColor(Color.WHITE);textSize=16f;setTextIsSelectable(true);setPadding(20,22,20,22);background=rounded(Color.rgb(22,33,48),24f) }
   root.addView(output,LinearLayout.LayoutParams(-1,-2).apply { setMargins(0,12,0,10) })
@@ -85,7 +93,7 @@ class MainActivity: Activity() {
  private fun busy(value: Boolean) {
   if(value) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
   else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-  ask.isEnabled=!value;quick.isEnabled=!value;modelButton.isEnabled=!value;documentButton.isEnabled=!value;packButton.isEnabled=!value }
+  ask.isEnabled=!value;quick.isEnabled=!value;modelButton.isEnabled=!value;documentButton.isEnabled=!value;packButton.isEnabled=!value;threadsButton.isEnabled=!value }
  private fun refresh() { status.text="OFFLINE · ${library.count()} personal passages · Pack ${if(library.packFile().exists()) "ready" else "missing"} · Model ${if(model.exists()) "ready" else "missing"}" }
  @Deprecated("Platform callback")
  override fun onActivityResult(requestCode: Int,resultCode: Int,data: Intent?) {
@@ -163,6 +171,7 @@ class MainActivity: Activity() {
  }
  private fun research() {
   val q=question.text.toString().trim();if(q.isEmpty()) return
+  val requestedThreads=cpuThreads
   fullSourcePassages=""
   busy(true);status.text="Searching local evidence…";output.text=""
   worker.execute {
@@ -191,7 +200,7 @@ class MainActivity: Activity() {
       evidence=modelEvidence;generationStarted=started;showingProgress=true
       progressHandler.post(progressTick)
      }
-     val answer=String(Engine.answer(model.path,system,q,192),Charsets.UTF_8)
+     val answer=String(Engine.answer(model.path,system,q,192,requestedThreads),Charsets.UTF_8)
      val timings=String(Engine.metrics(),Charsets.UTF_8)
      val refs=Regex("\\[(\\d+)\\]").findAll(answer).map { it.groupValues[1].toIntOrNull() }.toList()
      val citationNote=when { refs.isEmpty() -> "\n\nCitation check: no inline source references. Verify claims against the evidence below."; refs.any { it == null || it < 1 || it > modelHits.size } -> "\n\nCitation check: an invalid source number was cited. Verify the answer against the evidence below."; else -> "" }

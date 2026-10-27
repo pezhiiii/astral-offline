@@ -58,7 +58,7 @@ static std::string utf8(JNIEnv* e, jstring s) {
  return std::wstring_convert<std::codecvt_utf8_utf16<char16_t>,char16_t>{}.to_bytes(u);
 }
 extern "C" JNIEXPORT void JNICALL Java_org_bl3_astral_Engine_cancel(JNIEnv*,jobject) { stopped=true; }
-extern "C" JNIEXPORT jbyteArray JNICALL Java_org_bl3_astral_Engine_answer(JNIEnv* e,jobject,jstring file,jstring sys,jstring question,jint max_tokens) {
+extern "C" JNIEXPORT jbyteArray JNICALL Java_org_bl3_astral_Engine_answer(JNIEnv* e,jobject,jstring file,jstring sys,jstring question,jint max_tokens,jint threads) {
  std::lock_guard<std::mutex> lock(engine_mutex); stopped=false;
  try {
   { std::lock_guard<std::mutex> progress_lock(progress_mutex); partial.clear(); metrics.clear(); }
@@ -104,7 +104,8 @@ extern "C" JNIEXPORT jbyteArray JNICALL Java_org_bl3_astral_Engine_answer(JNIEnv
   const auto context_started=Clock::now();
   report("Allocating context");
   auto cp=llama_context_default_params();cp.n_ctx=std::min(4096,((nt+budget+255)/256)*256);cp.n_batch=256;cp.n_ubatch=128;
-  cp.n_threads=4;cp.n_threads_batch=4;cp.abort_callback=abort_eval;
+  const int thread_count=std::clamp((int)threads,1,8);
+  cp.n_threads=thread_count;cp.n_threads_batch=thread_count;cp.abort_callback=abort_eval;
   if(!cached_context || cached_context_size!=cp.n_ctx) {
    cached_context.reset();cached_prompt.clear();cached_context_size=0;
    cached_context.reset(llama_init_from_model(model,cp));
@@ -112,6 +113,7 @@ extern "C" JNIEXPORT jbyteArray JNICALL Java_org_bl3_astral_Engine_answer(JNIEnv
    cached_context_size=cp.n_ctx;
   }
   auto* ctx=cached_context.get();
+  llama_set_n_threads(ctx,thread_count,thread_count);
   // Always evaluate at least the final input token to obtain fresh logits.
   int prefix=0;
   while(prefix<nt-1 && prefix<(int)cached_prompt.size() && tokens[prefix]==cached_prompt[prefix]) ++prefix;
@@ -153,8 +155,8 @@ extern "C" JNIEXPORT jbyteArray JNICALL Java_org_bl3_astral_Engine_answer(JNIEnv
   }
   const double generation_time=seconds(generation_started);
   char timing[1024];
-  std::snprintf(timing,sizeof(timing),"Process: %d · run %lu\nModel: %s\nModel setup: %.1f s\nPrompt formatting: %.2f s\nContext setup: %.1f s · %u slots\nInput: %d tokens · cached %d · evaluated %d\nInput evaluation: %.1f s · %.2f tok/s\nFirst token: %.1f s\nGeneration: %.1f s · %d tokens · %.2f tok/s\nFinish: %s",
-   static_cast<int>(getpid()),run,reused?"reused":"loaded",load_time,format_time,context_time,cp.n_ctx,
+  std::snprintf(timing,sizeof(timing),"CPU threads: %d\nProcess: %d · run %lu\nModel: %s\nModel setup: %.1f s\nPrompt formatting: %.2f s\nContext setup: %.1f s · %u slots\nInput: %d tokens · cached %d · evaluated %d\nInput evaluation: %.1f s · %.2f tok/s\nFirst token: %.1f s\nGeneration: %.1f s · %d tokens · %.2f tok/s\nFinish: %s",
+   thread_count,static_cast<int>(getpid()),run,reused?"reused":"loaded",load_time,format_time,context_time,cp.n_ctx,
    nt,prefix,nt-prefix,evaluation_time,evaluation_time>0?(nt-prefix)/evaluation_time:0,first_token_time,generation_time,generated,
    generation_time>0?generated/generation_time:0,reached_end?"end of answer":"token limit (answer may be incomplete)");
   { std::lock_guard<std::mutex> progress_lock(progress_mutex); metrics=timing; }
