@@ -20,6 +20,19 @@ internal object SearchPolicy {
 
  fun terms(question: String): List<String> = tokens(question).filter { it !in stop }.take(32)
 
+ /** For a specific dated event, keep passages from its matching title together.
+  * Fall back to the existing ranking when no strong title match is available. */
+ fun focusedTitle(question: String, titles: List<String>): String? {
+  if(Regex("(?i)\\b(compare|comparison|versus|difference|differences|vs)\\b").containsMatchIn(question)) return null
+  val queryTerms=terms(question).filter { it !in setOf("happened", "happen", "won", "winner", "result", "outcome") }
+  val years=queryTerms.filter { it.length==4 && it.all { c -> c in '0'..'9' } }
+  if(years.size!=1 || queryTerms.size<3) return null
+  return titles.firstOrNull { title ->
+   val words=tokens(title.substringBefore(" — "))
+   queryTerms.all { it in words }
+  }?.substringBefore(" — ")
+ }
+
  private val genericDefinitionHeads=setOf("capital", "population", "president", "founder", "history", "location", "date", "year", "name", "cause")
  fun definitionAnchor(question: String, terms: List<String>): String? {
   if(!Regex("(?i)^\\s*(what is|what are|define)\\b").containsMatchIn(question)) return null

@@ -4,6 +4,12 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class SearchPolicyTest {
+ @Test fun datedEventFocusesOnCompleteTitle() {
+  val titles=listOf("1903 German football championship — source", "1903 Cork Senior Football Championship — source")
+  assertEquals("1903 German football championship",SearchPolicy.focusedTitle("What happened in the 1903 German football championship?",titles))
+  assertNull(SearchPolicy.focusedTitle("Compare 1903 German football championship vs Cork",titles))
+  assertNull(SearchPolicy.focusedTitle("What happened in the 1904 German football championship?",titles))
+ }
  @Test fun yearInTitleOutranksAnotherYear() {
   val terms=SearchPolicy.terms("What happened in the 1903 German football championship?")
   val expected=SearchPolicy.score(terms,"1903 German football championship","The 1903 championship was the first.")
