@@ -18,6 +18,10 @@ fun main() {
  check(SearchPolicy.terms("\" OR * (ram)")==listOf("ram"))
  val eco=SearchPolicy.terms("What is an ecosystem? Explain how living organisms and their environment interact, using the available sources.")
  check(SearchPolicy.definitionAnchor("What is an ecosystem?",eco)=="ecosystem")
+ val definition="An ecosystem is a community of living organisms and their physical environment."
+ val bibliography="Ecosystem ecology. Archived 2017. Retrieved 2020. Journal of Ecology. doi:1234."
+ check(SearchPolicy.definitionRank("ecosystem",definition)>SearchPolicy.definitionRank("ecosystem",bibliography))
+ check(SearchPolicy.definitionRank(null,definition)==0)
  check(SearchPolicy.score(eco,"Ecosystem — https://en.wikipedia.org/wiki/Ecosystem","living organisms")>SearchPolicy.score(eco,"Aristotle — https://en.wikipedia.org/wiki/Aristotle","living organisms"))
  check(SearchPolicy.excerpt((1..200).joinToString(" "){"word$it"}, listOf("word100")).contains("word100"))
  println("Search policy regression checks passed: multi-source inclusion, unrelated-source exclusion, RAM lookup, whole-word boundaries, case, Unicode, empty query, unknown term, punctuation.")

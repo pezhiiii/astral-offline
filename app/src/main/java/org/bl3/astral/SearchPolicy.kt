@@ -36,4 +36,14 @@ internal object SearchPolicy {
   val bodyWords=tokens(body)
   return terms.sumOf { (if(it in titleWords) 4 else 0) + (if(it in bodyWords) 1 else 0) }
  }
+
+ /** Rank definition-bearing passages above bibliography-like passages. */
+ fun definitionRank(anchor: String?, body: String): Int {
+  if(anchor==null) return 0
+  val escaped=Regex.escape(anchor)
+  val definition=Regex("(?i)\\b$escaped\\s+(?:is|are|refers to|means|consists of)\\b")
+  val citations=Regex("(?i)\\b(?:doi|isbn|retrieved|archived|journal|bibliography)\\b")
+   .findAll(body).take(4).count()
+  return (if(definition.containsMatchIn(body)) 8 else 0) - citations * 2
+ }
 }

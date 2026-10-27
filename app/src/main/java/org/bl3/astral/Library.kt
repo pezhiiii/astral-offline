@@ -58,7 +58,7 @@ class Library(private val context: Context): SQLiteOpenHelper(context, "knowledg
   val perTitle=mutableMapOf<String,Int>()
   return candidates.distinctBy { it.id }.filter { anchor==null || anchor in SearchPolicy.tokens(it.title.substringBefore(" — ")+" "+it.text) }.map { it to SearchPolicy.score(terms,it.title,it.text) }
    .filter { it.second>0 }
-   .sortedWith(compareByDescending<Pair<Passage,Int>> { it.second }.thenBy { kotlin.math.abs(it.first.id) })
+   .sortedWith(compareByDescending<Pair<Passage,Int>> { it.second + SearchPolicy.definitionRank(anchor,it.first.text) }.thenBy { kotlin.math.abs(it.first.id) })
    .map { it.first }.distinctBy { it.text }.filter { val key=it.title.substringBefore(" — "); val n=perTitle.getOrDefault(key,0); perTitle[key]=n+1; n<2 }.take(4)
  }
 }
