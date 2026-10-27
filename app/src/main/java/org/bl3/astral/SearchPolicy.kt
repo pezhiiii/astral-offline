@@ -20,8 +20,13 @@ internal object SearchPolicy {
 
  fun terms(question: String): List<String> = tokens(question).filter { it !in stop }.take(32)
 
- fun definitionAnchor(question: String, terms: List<String>): String? =
-  if(Regex("(?i)^\\s*(what is|what are|define)\\b").containsMatchIn(question)) terms.firstOrNull() else null
+ private val genericDefinitionHeads=setOf("capital", "population", "president", "founder", "history", "location", "date", "year", "name", "cause")
+ fun definitionAnchor(question: String, terms: List<String>): String? {
+  if(!Regex("(?i)^\\s*(what is|what are|define)\\b").containsMatchIn(question)) return null
+  val first=terms.firstOrNull() ?: return null
+  // "capital of France" needs both terms, unlike "what is an ecosystem?".
+  return if(terms.size>1 && first in genericDefinitionHeads) null else first
+ }
 
  fun excerpt(text: String, terms: List<String>, maxWords: Int = 90): String {
   val words=text.split(Regex("\\s+"))
@@ -51,8 +56,9 @@ internal object SearchPolicy {
   // articles (for example football championships in different years).
   return terms.sumOf { term ->
    val year=term.length==4 && term.all { it in '0'..'9' }
-   (if(term in titleWords) if(year) 24 else 4 else 0) +
-    (if(term in bodyWords) if(year) 3 else 1 else 0)
+   val subject=terms.size>1 && terms.first() in genericDefinitionHeads && term !in genericDefinitionHeads
+   (if(term in titleWords) if(year) 24 else if(subject) 8 else 4 else 0) +
+    (if(term in bodyWords) if(year) 3 else if(subject) 6 else 1 else 0)
   }
  }
 

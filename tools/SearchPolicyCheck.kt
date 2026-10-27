@@ -18,6 +18,9 @@ fun main() {
  check(SearchPolicy.terms("\" OR * (ram)")==listOf("ram"))
  val eco=SearchPolicy.terms("What is an ecosystem? Explain how living organisms and their environment interact, using the available sources.")
  check(SearchPolicy.definitionAnchor("What is an ecosystem?",eco)=="ecosystem")
+ val capital=SearchPolicy.terms("What is the capital of France?")
+ check(SearchPolicy.definitionAnchor("What is the capital of France?",capital)==null)
+ check(SearchPolicy.score(capital,"Paris","Paris is the capital of France.") > SearchPolicy.score(capital,"Capital","A capital city is the seat of government."))
  val definition="An ecosystem is a community of living organisms and their physical environment."
  val bibliography="Ecosystem ecology. Archived 2017. Retrieved 2020. Journal of Ecology. doi:1234."
  check(SearchPolicy.definitionRank("ecosystem",definition)>SearchPolicy.definitionRank("ecosystem",bibliography))
