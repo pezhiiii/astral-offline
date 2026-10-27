@@ -19,16 +19,19 @@ class Library(private val context: Context): SQLiteOpenHelper(context, "knowledg
  override fun onUpgrade(db: SQLiteDatabase, old: Int, new: Int) { error("Unsupported schema migration") }
  fun importText(title: String, text: String): Int {
   require(title.isNotBlank() && text.isNotBlank()) { "Empty document" }
-  val words=text.split(Regex("\\s+")); var count=0
+  val sections=DocumentSections.split(title,text); var count=0
   writableDatabase.beginTransaction()
   try {
+   for(section in sections) {
+   val words=section.body.split(Regex("\\s+"))
    var start=0
    while(start<words.size) {
     val end=minOf(start+220,words.size)
-    val values=android.content.ContentValues().apply { put("title", title); put("body", words.subList(start,end).joinToString(" ")) }
+    val values=android.content.ContentValues().apply { put("title", section.title); put("body", words.subList(start,end).joinToString(" ")) }
     writableDatabase.insertOrThrow("passages",null,values);count++
     if(end==words.size) break
     start+=180
+   }
    }
    writableDatabase.setTransactionSuccessful()
   } finally { writableDatabase.endTransaction() }
