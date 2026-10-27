@@ -31,6 +31,7 @@ class MainActivity: Activity() {
  private val worker=Executors.newSingleThreadExecutor()
  private val progressHandler=Handler(Looper.getMainLooper())
  private var showingProgress=false
+ private val cancelRequested=java.util.concurrent.atomic.AtomicBoolean(false)
  private var evidence=""
  private var fullSourcePassages=""
  private var generationStarted=0L
@@ -81,7 +82,7 @@ class MainActivity: Activity() {
    threadsButton.text="CPU threads: $cpuThreads"
    getPreferences(MODE_PRIVATE).edit().putInt("cpu_threads",cpuThreads).apply()
   }
-  button("Stop generation") { runCatching { Engine.cancel() };status.text="Stop requested" }
+  button("Stop generation") { cancelRequested.set(true);runCatching { Engine.cancel() };status.text="Stop requested" }
   output=TextView(this).apply { setTextColor(Color.WHITE);textSize=16f;setTextIsSelectable(true);setPadding(20,22,20,22);background=rounded(Color.rgb(22,33,48),24f) }
   root.addView(output,LinearLayout.LayoutParams(-1,-2).apply { setMargins(0,12,0,10) })
   button("View source passages") { showSourcePassages() }
@@ -172,12 +173,15 @@ class MainActivity: Activity() {
  private fun research() {
   val q=question.text.toString().trim();if(q.isEmpty()) return
   val requestedThreads=cpuThreads
+  cancelRequested.set(false)
+  try { Engine.prepare() } catch(e: Throwable) { output.text="Engine unavailable: ${e.message}";return }
   fullSourcePassages=""
   busy(true);status.text="Searching local evidence…";output.text=""
   worker.execute {
    val started=System.nanoTime()
    try {
     val hits=library.search(q)
+    if(cancelRequested.get()) { ui { output.text="Stopped." };return@execute }
     val sources=hits.mapIndexed { i,p -> "[${i+1}] ${p.title} (passage ${p.id})\n${p.text}" }.joinToString("\n\n")
     ui { fullSourcePassages=sources }
     if(hits.isEmpty()) { ui { output.text="No matching evidence found. Import relevant sources or rephrase your question. No answer was generated." };return@execute }
@@ -200,13 +204,14 @@ class MainActivity: Activity() {
       evidence=modelEvidence;generationStarted=started;showingProgress=true
       progressHandler.post(progressTick)
      }
+     if(cancelRequested.get()) { ui { output.text="Stopped." };return@execute }
      val answer=String(Engine.answer(model.path,system,q,192,requestedThreads),Charsets.UTF_8)
      val timings=String(Engine.metrics(),Charsets.UTF_8)
      val refs=Regex("\\[(\\d+)\\]").findAll(answer).map { it.groupValues[1].toIntOrNull() }.toList()
      val citationNote=when { refs.isEmpty() -> "\n\nCitation check: no inline source references. Verify claims against the evidence below."; refs.any { it == null || it < 1 || it > modelHits.size } -> "\n\nCitation check: an invalid source number was cited. Verify the answer against the evidence below."; else -> "" }
      ui { output.text="$answer$citationNote\n\nEVIDENCE SENT TO MODEL (excerpt)\n$modelEvidence\n\n$timings\n\nElapsed: ${"%.1f".format((System.nanoTime()-started)/1e9)} s" }
     } else ui { output.text="RETRIEVAL ONLY — import a GGUF model for synthesis.\n\n$sources" }
-   } catch(e: Throwable) { ui { output.text="Research failed: ${e.message}" } }
+   } catch(e: Throwable) { ui { output.text=if(cancelRequested.get()) "Stopped." else "Research failed: ${e.message}" } }
    finally { ui { showingProgress=false;progressHandler.removeCallbacks(progressTick);busy(false);refresh() } }
   }
  }

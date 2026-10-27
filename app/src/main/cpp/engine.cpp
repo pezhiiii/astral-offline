@@ -57,15 +57,17 @@ static std::string utf8(JNIEnv* e, jstring s) {
  e->ReleaseStringChars(s,p);
  return std::wstring_convert<std::codecvt_utf8_utf16<char16_t>,char16_t>{}.to_bytes(u);
 }
+extern "C" JNIEXPORT void JNICALL Java_org_bl3_astral_Engine_prepare(JNIEnv*,jobject) { stopped=false; }
 extern "C" JNIEXPORT void JNICALL Java_org_bl3_astral_Engine_cancel(JNIEnv*,jobject) { stopped=true; }
 extern "C" JNIEXPORT jbyteArray JNICALL Java_org_bl3_astral_Engine_answer(JNIEnv* e,jobject,jstring file,jstring sys,jstring question,jint max_tokens,jint threads) {
- std::lock_guard<std::mutex> lock(engine_mutex); stopped=false;
+ std::lock_guard<std::mutex> lock(engine_mutex);
  try {
   { std::lock_guard<std::mutex> progress_lock(progress_mutex); partial.clear(); metrics.clear(); }
   const auto started=Clock::now();
   const auto run=++run_number;
   static std::once_flag initialized;
   std::call_once(initialized,[]{llama_backend_init();});
+  if(stopped) throw std::runtime_error("Cancelled");
   auto path=utf8(e,file), system=utf8(e,sys), user=utf8(e,question);
   const bool reused=cached_model && cached_path==path;
   report(reused?"Reusing loaded model":"Loading model");

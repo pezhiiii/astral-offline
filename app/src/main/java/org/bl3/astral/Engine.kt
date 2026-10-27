@@ -5,5 +5,6 @@ object Engine {
  external fun snapshot(): ByteArray
  external fun release()
  external fun metrics(): ByteArray
+ external fun prepare()
  external fun cancel()
 }

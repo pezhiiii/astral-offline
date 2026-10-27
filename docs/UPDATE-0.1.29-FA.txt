@@ -1,0 +1,1 @@
+Astral 0.1.29-dev: Stop requests are retained if pressed during source search and checked before model inference; stop during llama inference continues to use the existing abort callback. SQLite lookup or model loading may not stop instantly. Archive and static wiring checked; C++/Kotlin/Android build and device test unavailable. Use the existing signing key.
