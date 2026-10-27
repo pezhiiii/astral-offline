@@ -12,6 +12,7 @@ internal object SearchPolicy {
   "more most less least both each any all some such same other " +
   "compare explain describe summarize cite source sources according " +
   "please answer question using use available their they them requirement requirements requiring " +
+  "give given information based evidence direct directly example examples briefly short " +
   "meet meets off").split(' ').toSet()
 
  fun tokens(text: String): Set<String> = word.findAll(text.lowercase(Locale.ROOT))

@@ -39,9 +39,9 @@ class Library(private val context: Context): SQLiteOpenHelper(context, "knowledg
   val terms=SearchPolicy.terms(question)
   if(terms.isEmpty()) return emptyList()
   val candidates=mutableListOf<Passage>()
-  // Search the most specific query first, then retain broad matches for multi-source questions.
-  // Both passes are bounded; neither is a complete ranking of a large corpus.
-  val queries=(listOf(terms.joinToString(" AND ") { "\"$it\"" }) + terms.flatMap { listOf("title:$it", "body:$it") }).distinct()
+  // Retrieve pairs before single words so common words cannot crowd out topical matches.
+  val pairs=terms.take(8).flatMapIndexed { i,a -> terms.take(8).drop(i+1).map { b -> "\"$a\" AND \"$b\"" } }
+  val queries=(listOf(terms.joinToString(" AND ") { "\"$it\"" }) + pairs + terms.flatMap { listOf("title:$it", "body:$it") }).distinct()
   val databases=mutableListOf(readableDatabase)
   val external=if(pack.exists()) SQLiteDatabase.openDatabase(pack.path,null,SQLiteDatabase.OPEN_READONLY) else null
   if(external!=null) databases.add(external)
