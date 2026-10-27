@@ -60,7 +60,7 @@ class Library(private val context: Context): SQLiteOpenHelper(context, "knowledg
   val candidates=mutableListOf<Passage>()
   // Focus definition questions on their subject; generic words like "living" do not
   // justify sending unrelated documents to the language model.
-  val anchor=SearchPolicy.definitionAnchor(question,terms)
+  val anchor=SearchPolicy.subjectAnchor(question) ?: SearchPolicy.definitionAnchor(question,terms)
   val focus=terms.take(8)
   val pairs=focus.take(4).flatMapIndexed { i,a -> focus.take(4).drop(i+1).map { b -> "\"$a\" AND \"$b\"" } }
   val queries=if(anchor!=null) listOf("title:$anchor", "body:$anchor") else

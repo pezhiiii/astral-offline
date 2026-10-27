@@ -4,6 +4,11 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class SearchPolicyTest {
+ @Test fun biographyRequiresItsSubject() {
+  assertEquals("aristotle",SearchPolicy.subjectAnchor("Who was Aristotle? Explain two of his contributions and cite the evidence."))
+  assertNull(SearchPolicy.subjectAnchor("Compare Aristotle and Plato"))
+ }
+
  @Test fun datedEventFocusesOnCompleteTitle() {
   val titles=listOf("1903 German football championship — source", "1903 Cork Senior Football Championship — source")
   assertEquals("1903 German football championship",SearchPolicy.focusedTitle("What happened in the 1903 German football championship?",titles))

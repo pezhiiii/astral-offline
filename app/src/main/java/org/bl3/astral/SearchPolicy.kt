@@ -33,6 +33,11 @@ internal object SearchPolicy {
   }?.substringBefore(" — ")
  }
 
+ fun subjectAnchor(question: String): String? {
+  val match=Regex("(?i)^\\s*who\\s+(?:is|was|were|are)\\s+([^?]+)").find(question) ?: return null
+  return terms(match.groupValues[1]).firstOrNull()
+ }
+
  private val genericDefinitionHeads=setOf("capital", "population", "president", "founder", "history", "location", "date", "year", "name", "cause")
  fun definitionAnchor(question: String, terms: List<String>): String? {
   if(!Regex("(?i)^\\s*(what is|what are|define)\\b").containsMatchIn(question)) return null
