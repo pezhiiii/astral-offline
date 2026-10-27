@@ -1,56 +1,48 @@
-# ASTRAL — offline Android research prototype
+# Astral — offline Android research prototype
 
-**Status: source prototype, not a bounty-ready submission. No APK or real-device benchmark has been produced in this environment.**
+Astral searches user-provided offline text and an optional local knowledge pack, then can generate a source-cited answer using a user-provided GGUF model. This is a research prototype: answer quality, coverage, performance, and suitability for any bounty have not been established by systematic evaluation.
 
-Original app code with a geometric explorer identity, local document retrieval and a llama.cpp JNI inference adapter. No competitor code is copied. The upstream engine is fetched at the exact commit in `tools/bootstrap.py` and retains its MIT license.
+## What it does
 
-## Implemented in source
-- Native Android UI; no WebView, server, account or Play Services.
-- No INTERNET permission and no runtime download code.
-- User-selected local GGUF import (6 GB maximum model file).
-- UTF-8 plain-text document import, 5 MB per document, overlapping 220-word passages in SQLite FTS4.
-- Keyword retrieval with lightweight lexical reranking, four source passages, evidence-constrained prompt and a 384-token answer budget.
-- Chat template read from the GGUF; unsupported templates produce an error rather than a fabricated answer.
-- CPU generation with four threads and 4096-token context; Stop button and resource cleanup.
-- Visible retrieval-only mode when no model is imported.
-- Device information and elapsed answer time. These are not peak-memory measurements.
+- Runs on Android 9 or later, arm64; the manifest declares no INTERNET permission. Model and knowledge files must be obtained separately and transferred to the device.
+- Imports an instruct GGUF model (up to 6 GB), UTF-8 text files (up to 5 MB each), and a compatible SQLite FTS4 knowledge pack. PDF and Word files must first be converted to plain text.
+- Searches local passages using lexical matching and reranking. Quick source lookup displays excerpts without invoking the model.
+- Generates answers with a local llama.cpp engine and displays the excerpt sent to the model. A source-passage view shows retrieved context. The citation check detects missing or out-of-range numbers, not factual support.
+- Uses CPU inference. Source versions with the CPU-thread control offer 2, 4, or 6 threads; actual performance varies by device, model, temperature and question. The loaded model and compatible prompt prefix may be reused.
+- Some supported numerical questions may be answered by a deterministic calculation without model inference; this is labeled in the output.
 
-## Build on a development computer
-Install JDK 17, Git, Python 3, Gradle 8.11.1 and Android SDK. Install SDK platform 35, build-tools 35.0.0, NDK 27.2.12479018 and CMake 3.22.1. Set ANDROID_HOME or `sdk.dir` in local.properties.
+## What has been observed
+
+A user-provided screenshot of version 0.1.21-dev shows a sourced ecosystem answer and a full retrieved-passage view on an Android phone. That run reported 22.1 seconds for one question. Another screenshot reported 19.8 seconds for the same question on the preceding version. These individual observations do not establish an average, a speed improvement, or performance on other devices and questions. Later source changes and GrapheneOS have not been independently verified here.
+
+## Build
+
+Requirements: JDK 17, Git, Python 3, Gradle 8.11.1, Android SDK platform 35, build-tools 35.0.0, NDK 27.2.12479018 and CMake 3.22.1. Configure `ANDROID_HOME` or `sdk.dir` in `local.properties`. Building downloads dependencies and requires network access.
 
 ```sh
 python3 tools/bootstrap.py
-gradle --no-daemon :app:assembleDebug
-adb install app/build/outputs/apk/debug/app-debug.apk
+gradle --no-daemon :app:assembleDebug :app:testDebugUnitTest
 ```
 
-Alternatively push this directory as the root of your own GitHub repository. The included GitHub Actions workflow attempts a debug build and uploads its APK as an artifact. **That workflow has not been run here.** Its external actions are version-tagged, not SHA-pinned. No signing secrets are needed for the debug APK.
+The debug signing configuration expects `.signing/astral-debug.keystore` with the configured alias and password. The GitHub Actions workflow restores this keystore from the `ASTRAL_DEBUG_KEYSTORE_BASE64` repository secret, builds, runs the included search-policy tests and checks the APK signer. Treat the secret and keystore as private. Installing over an existing app requires the same signing key and a compatible version code. Keep the installed app and its data until an update succeeds.
 
-The engine is pinned to `6b9ba4f2e8c1436511956f0b3c309e2c9e642071` from https://github.com/ggml-org/llama.cpp . Build tooling downloads dependencies while ONLINE. The resulting app has no network permission.
+The workflow's result for the latest revision has not been checked here. A successful build and unit tests do not prove correct behavior on a phone.
 
-## First device trial
-1. Use a real arm64 Android 9+ phone. GrapheneOS compatibility remains untested.
-2. Separately obtain an instruct GGUF supported by the pinned llama.cpp. The file must contain a supported chat template. Start with a small quantized model that fits your actual phone. **No particular model, model license or model quality is validated by this prototype.**
-3. Transfer that GGUF and `docs/trial-notes.txt` to the phone using USB or another method before going offline.
-4. Open Astral, import the GGUF, then import the text document.
-5. Turn on airplane mode and disable Wi-Fi. Ask: “Compare the Aurora and Boreal filters for a 12-person group. Which meets the daily requirement and why?”
-6. Expected evidence: Aurora supplies 18 L/day; Boreal supplies 30 L/day; requirement is 24 L/day. Only Boreal meets it. Record the actual model response, errors and time without editing them.
-7. Try your own unseen questions and documents. One synthetic example does not establish research quality.
+## Use
 
-Do not import PDF/DOCX binaries: convert them to plain UTF-8 text first. Sources are displayed in full below the answer. Citation labels are generated by the model and are **not automatically verified**.
+1. Transfer a compatible instruct GGUF and a plain UTF-8 document or compatible FTS4 knowledge pack to the phone. Astral does not bundle these assets.
+2. Import the model and sources using the buttons in the app. The pack is optional if you have imported text.
+3. For an offline demonstration, enable airplane mode and verify Wi-Fi is also disabled. Ask a question covered by the local sources.
+4. Use **Quick source lookup** for retrieval only, or **Generate answer with model** for a locally generated answer. Inspect the evidence and **View source passages**. Opening a web link requires connectivity.
 
-## Current limitations / submission blockers
-- No APK build, model inference, Android lifecycle or real-device run has been verified here.
-- No measured peak RAM, total 50 GB installation guard, thermal benchmark, battery or quality evaluation.
-- No bundled general knowledge corpus or selected reproducible model asset with checksums. This is document research, not yet a broad replacement for web research.
-- Retrieval considers only the first 120 matching passages; ranking is lexical and can miss evidence. No semantic embeddings, multi-step retrieval or conversation memory.
-- No token streaming; UI displays the complete answer after inference. Model is reloaded per question. Speed is unmeasured.
-- Model import cancellation is not implemented. Stop applies to model generation, and a very early stop can race with engine startup.
-- Prompt-injection resistance is prompt-level only. Models may hallucinate or miscite evidence.
-- Geometric character is a custom vector sketch, not an animated cinematic asset.
-- Public GitHub publication and demo/poidh claim have not happened.
+## Limits
 
-Do not claim >50% frontier quality or bounty eligibility until verified against the actual rules on real hardware.
+- A source citation number is not proof that the answer is supported. The model can misunderstand, invent facts, follow instructions within source material, or fail to answer.
+- Keyword search and short evidence excerpts can miss relevant passages. Coverage depends entirely on imported material and its snapshot date; offline knowledge is not automatically current.
+- Importing a model or pack can require additional temporary storage. Model loading and SQLite searches may not stop immediately.
+- No systematic answer-quality comparison, peak-RAM measurement, thermal or battery benchmark, or GrapheneOS validation is available here. A single successful example does not establish bounty eligibility.
+- The included tests focus on search-policy behavior; they do not test the Android UI, model inference, full retrieval database, or all citation claims.
 
-## Attribution and resources
-Own code: MIT (LICENSE). llama.cpp: MIT, fetched by bootstrap, license at vendor/llama.cpp/LICENSE. Android platform SQLite/FTS uses platform-provided binaries. Gradle/Android Gradle Plugin/Kotlin and GitHub Actions are build-time dependencies with their respective upstream licenses. User-imported documents and models retain their original licenses; record filename, upstream URL, revision, SHA-256, size and license in docs/RESOURCES.md before distributing any submission.
+## Attribution
+
+Astral source is MIT licensed. The build fetches llama.cpp at commit `6b9ba4f2e8c1436511956f0b3c309e2c9e642071`; its license is maintained upstream. Imported models and datasets retain their own licenses. Record exact model and dataset filenames, sources, revisions, licenses, checksums, and installed sizes before distributing or making claims about them.
