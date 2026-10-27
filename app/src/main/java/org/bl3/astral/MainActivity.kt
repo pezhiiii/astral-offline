@@ -22,6 +22,7 @@ class MainActivity: Activity() {
  private lateinit var status: TextView
  private lateinit var question: EditText
  private lateinit var ask: Button
+ private lateinit var quick: Button
  private lateinit var modelButton: Button
  private lateinit var documentButton: Button
  private lateinit var packButton: Button
@@ -54,7 +55,7 @@ class MainActivity: Activity() {
   val root=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL; setPadding(28,24,28,20); setBackgroundColor(Color.rgb(10,16,29)) }
   val scroll=ScrollView(this).apply { isFillViewport=true };scroll.addView(root);setContentView(scroll)
   root.addView(TextView(this).apply { text="✦  Astral"; textSize=27f; typeface=Typeface.create("sans-serif-medium",Typeface.NORMAL);setTextColor(Color.WHITE) })
-  root.addView(TextView(this).apply { text="Offline research  ·  0.1.16";textSize=14f;setTextColor(Color.rgb(131,207,211));setPadding(0,5,0,5) })
+  root.addView(TextView(this).apply { text="Offline research  ·  0.1.17";textSize=14f;setTextColor(Color.rgb(131,207,211));setPadding(0,5,0,5) })
   status=TextView(this).apply { setTextColor(Color.LTGRAY);textSize=13f;setPadding(0,10,0,16) };root.addView(status)
   fun button(label: String, action: ()->Unit): Button = Button(this).apply {
    text=label;isAllCaps=false;textSize=14f;setTextColor(Color.WHITE)
@@ -68,7 +69,8 @@ class MainActivity: Activity() {
    hint="Ask anything about your offline sources…";setTextColor(Color.WHITE);setHintTextColor(Color.rgb(150,160,175));textSize=16f
    minLines=2;setPadding(22,18,22,18);background=rounded(Color.rgb(28,39,55),24f)
   };root.addView(question,LinearLayout.LayoutParams(-1,-2).apply { setMargins(0,12,0,8) })
-  ask=button("Research offline  →") { research() };ask.background=rounded(Color.rgb(0,127,137),22f)
+  quick=button("Quick source lookup") { quickLookup() };quick.background=rounded(Color.rgb(0,127,137),22f)
+  ask=button("Generate answer with model") { research() }
   button("Stop generation") { runCatching { Engine.cancel() };status.text="Stop requested" }
   output=TextView(this).apply { setTextColor(Color.WHITE);textSize=16f;setTextIsSelectable(true);setPadding(20,22,20,22);background=rounded(Color.rgb(22,33,48),24f) }
   root.addView(output,LinearLayout.LayoutParams(-1,-2).apply { setMargins(0,12,0,10) })
@@ -80,7 +82,7 @@ class MainActivity: Activity() {
  private fun busy(value: Boolean) {
   if(value) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
   else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-  ask.isEnabled=!value;modelButton.isEnabled=!value;documentButton.isEnabled=!value;packButton.isEnabled=!value }
+  ask.isEnabled=!value;quick.isEnabled=!value;modelButton.isEnabled=!value;documentButton.isEnabled=!value;packButton.isEnabled=!value }
  private fun refresh() { status.text="OFFLINE · ${library.count()} personal passages · Pack ${if(library.packFile().exists()) "ready" else "missing"} · Model ${if(model.exists()) "ready" else "missing"}" }
  @Deprecated("Platform callback")
  override fun onActivityResult(requestCode: Int,resultCode: Int,data: Intent?) {
@@ -136,6 +138,22 @@ class MainActivity: Activity() {
      ui { output.text="Added $count passages from $title." }
     }
    } catch(e: Exception) { ui { output.text="Import failed: ${e.message}" } }
+   finally { ui { busy(false);refresh() } }
+  }
+ }
+ private fun quickLookup() {
+  val q=question.text.toString().trim()
+  if(q.isEmpty()) { output.text="Enter a question first."; return }
+  busy(true);status.text="Searching offline sources…";output.text=""
+  worker.execute {
+   try {
+    val hits=library.search(q)
+    if(hits.isEmpty()) ui { output.text="No matching source found in your offline library. Try different keywords or import a relevant source." }
+    else {
+     val results=hits.take(3).mapIndexed { i,p -> "[${i+1}] ${p.title}\n${p.text}" }.joinToString("\n\n")
+     ui { output.text="QUICK SOURCE LOOKUP — excerpts from local documents, no AI-generated answer. Check relevance and context.\n\n$results" }
+    }
+   } catch(e: Exception) { ui { output.text="Lookup failed: ${e.message}" } }
    finally { ui { busy(false);refresh() } }
   }
  }
