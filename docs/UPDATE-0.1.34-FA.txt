@@ -1,0 +1,1 @@
+Astral 0.1.34-dev adds a read-only personal library overview grouped by stored title and passage count. It shows at most 200 titles and does not enumerate the separately imported knowledge pack. SQL grouping was checked on a small SQLite sample and ZIP integrity verified. Android/Kotlin build and device behavior were not tested here. Preserve the existing signing key.

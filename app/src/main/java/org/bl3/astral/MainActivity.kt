@@ -86,6 +86,7 @@ class MainActivity: Activity() {
   output=TextView(this).apply { setTextColor(Color.WHITE);textSize=16f;setTextIsSelectable(true);setPadding(20,22,20,22);background=rounded(Color.rgb(22,33,48),24f) }
   root.addView(output,LinearLayout.LayoutParams(-1,-2).apply { setMargins(0,12,0,10) })
   button("View source passages") { showSourcePassages() }
+  button("Personal library") { showLibrary() }
   button("Device & evidence") { deviceInfo() }
   output.text="Welcome to Astral. Import a model and offline sources, then ask a question. Answers can contain mistakes; check the evidence."
   refresh()
@@ -220,6 +221,16 @@ class MainActivity: Activity() {
   val view=TextView(this).apply { textSize=16f; setPadding(28,20,28,20); autoLinkMask=android.text.util.Linkify.WEB_URLS; text=body }
   val scroll=ScrollView(this).apply { addView(view) }
   AlertDialog.Builder(this).setTitle("Retrieved source passages").setView(scroll).setPositiveButton("Close",null).show()
+ }
+ private fun showLibrary() {
+  worker.execute {
+   try {
+    val sources=library.sourceSummary()
+    val lines=sources.take(200).joinToString("\n\n") { (title,count) -> "$title\n$count passages" }
+    val text=if(sources.isEmpty()) "No personal text documents have been imported." else lines+(if(sources.size>200) "\n\nShowing the first 200 titles." else "")
+    ui { AlertDialog.Builder(this).setTitle("Personal library").setMessage(text+"\n\nKnowledge pack is separate and is not listed here.").setPositiveButton("Close",null).show() }
+   } catch(e: Exception) { ui { output.text="Library overview failed: ${e.message}" } }
+  }
  }
  private fun deviceInfo() {
   val am=getSystemService(ACTIVITY_SERVICE) as android.app.ActivityManager

@@ -46,6 +46,13 @@ class Library(private val context: Context): SQLiteOpenHelper(context, "knowledg
   } finally { db.endTransaction() }
   return count
  }
+ fun sourceSummary(): List<Pair<String,Long>> {
+  val result=mutableListOf<Pair<String,Long>>()
+  readableDatabase.rawQuery("SELECT title, count(*) FROM passages GROUP BY title ORDER BY title LIMIT 201",null).use { c ->
+   while(c.moveToNext()) result.add(c.getString(0) to c.getLong(1))
+  }
+  return result
+ }
  fun count(): Long = readableDatabase.rawQuery("SELECT count(*) FROM passages",null).use { it.moveToFirst(); it.getLong(0) }
  fun search(question: String): List<Passage> {
   val terms=SearchPolicy.terms(question)
