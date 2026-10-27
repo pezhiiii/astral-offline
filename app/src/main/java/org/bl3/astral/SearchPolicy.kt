@@ -55,9 +55,12 @@ internal object SearchPolicy {
   val words=text.split(Regex("\\s+"))
   val result=words.indexOfFirst { tokens(it).any { token -> token in setOf("won", "winner", "defeated", "beat") } }
   if(result<0) return standard
-  val resultTerms=listOf(words[result].trim { !it.isLetterOrDigit() })
-  val extra=excerpt(text,resultTerms,maxWords / 2)
-  return if(tokens(words[result]).any { it in tokens(standard) }) standard else standard+"\n… "+extra
+  // Center the result word: a matching word at the end of a window can omit
+  // the winner or opponent, even though the word itself is already present.
+  val width=(maxWords / 2).coerceAtLeast(1).coerceAtMost(words.size)
+  val start=(result-width/2).coerceIn(0, words.size-width)
+  val resultWindow=words.subList(start,start+width).joinToString(" ")
+  return if(standard.contains(resultWindow)) standard else standard+"\n… "+resultWindow+(if(start+width<words.size) " …" else "")
  }
 
  fun score(terms: List<String>, title: String, body: String): Int {
