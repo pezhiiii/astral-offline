@@ -147,7 +147,7 @@ class MainActivity: Activity() {
      val text=Charsets.UTF_8.newDecoder().decode(java.nio.ByteBuffer.wrap(bytes)).toString()
      require(!text.contains('\u0000')) { "Import plain text, not a PDF or Word file" }
      val count=library.importText(title,text)
-     ui { output.text="Added $count passages from $title." }
+     ui { output.text=if(count==0) "This exact file was already imported with this name. No passages were added." else "Added $count passages from $title." }
     }
    } catch(e: Exception) { ui { output.text="Import failed: ${e.message}" } }
    finally { ui { busy(false);refresh() } }

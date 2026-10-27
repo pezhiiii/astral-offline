@@ -19,9 +19,16 @@ class Library(private val context: Context): SQLiteOpenHelper(context, "knowledg
  override fun onUpgrade(db: SQLiteDatabase, old: Int, new: Int) { error("Unsupported schema migration") }
  fun importText(title: String, text: String): Int {
   require(title.isNotBlank() && text.isNotBlank()) { "Empty document" }
-  val sections=DocumentSections.split(title,text); var count=0
-  writableDatabase.beginTransaction()
+  val digest=java.security.MessageDigest.getInstance("SHA-256").digest(text.toByteArray(Charsets.UTF_8))
+  val fingerprint=digest.joinToString("") { "%02x".format(it.toInt() and 0xff) }
+  val db=writableDatabase
+  var count=0
+  db.beginTransaction()
   try {
+   db.execSQL("CREATE TABLE IF NOT EXISTS import_fingerprints (filename TEXT NOT NULL, sha256 TEXT NOT NULL, PRIMARY KEY(filename,sha256))")
+   val alreadyImported=db.rawQuery("SELECT 1 FROM import_fingerprints WHERE filename=? AND sha256=? LIMIT 1",arrayOf(title,fingerprint)).use { it.moveToFirst() }
+   if(alreadyImported) { db.setTransactionSuccessful(); return 0 }
+   val sections=DocumentSections.split(title,text)
    for(section in sections) {
    val words=section.body.split(Regex("\\s+"))
    var start=0
@@ -33,8 +40,10 @@ class Library(private val context: Context): SQLiteOpenHelper(context, "knowledg
     start+=180
    }
    }
-   writableDatabase.setTransactionSuccessful()
-  } finally { writableDatabase.endTransaction() }
+   val record=android.content.ContentValues().apply { put("filename",title);put("sha256",fingerprint) }
+   db.insertOrThrow("import_fingerprints",null,record)
+   db.setTransactionSuccessful()
+  } finally { db.endTransaction() }
   return count
  }
  fun count(): Long = readableDatabase.rawQuery("SELECT count(*) FROM passages",null).use { it.moveToFirst(); it.getLong(0) }
