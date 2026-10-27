@@ -30,6 +30,7 @@ class MainActivity: Activity() {
  private val progressHandler=Handler(Looper.getMainLooper())
  private var showingProgress=false
  private var evidence=""
+ private var fullSourcePassages=""
  private var generationStarted=0L
  private val progressTick=object: Runnable {
   override fun run() {
@@ -75,6 +76,7 @@ class MainActivity: Activity() {
   button("Stop generation") { runCatching { Engine.cancel() };status.text="Stop requested" }
   output=TextView(this).apply { setTextColor(Color.WHITE);textSize=16f;setTextIsSelectable(true);setPadding(20,22,20,22);background=rounded(Color.rgb(22,33,48),24f) }
   root.addView(output,LinearLayout.LayoutParams(-1,-2).apply { setMargins(0,12,0,10) })
+  button("View source passages") { showSourcePassages() }
   button("Device & evidence") { deviceInfo() }
   output.text="Welcome to Astral. Import a model and offline sources, then ask a question. Answers can contain mistakes; check the evidence."
   refresh()
@@ -145,6 +147,7 @@ class MainActivity: Activity() {
  private fun quickLookup() {
   val q=question.text.toString().trim()
   if(q.isEmpty()) { output.text="Enter a question first."; return }
+  fullSourcePassages=""
   busy(true);status.text="Searching offline sources…";output.text=""
   worker.execute {
    try {
@@ -152,7 +155,7 @@ class MainActivity: Activity() {
     if(hits.isEmpty()) ui { output.text="No matching source found in your offline library. Try different keywords or import a relevant source." }
     else {
      val results=hits.take(3).mapIndexed { i,p -> "[${i+1}] ${p.title}\n${p.text}" }.joinToString("\n\n")
-     ui { output.text="QUICK SOURCE LOOKUP — excerpts from local documents, no AI-generated answer. Check relevance and context.\n\n$results" }
+     ui { fullSourcePassages=results;output.text="QUICK SOURCE LOOKUP — excerpts from local documents, no AI-generated answer. Check relevance and context.\n\n$results" }
     }
    } catch(e: Exception) { ui { output.text="Lookup failed: ${e.message}" } }
    finally { ui { busy(false);refresh() } }
@@ -160,12 +163,14 @@ class MainActivity: Activity() {
  }
  private fun research() {
   val q=question.text.toString().trim();if(q.isEmpty()) return
+  fullSourcePassages=""
   busy(true);status.text="Searching local evidence…";output.text=""
   worker.execute {
    val started=System.nanoTime()
    try {
     val hits=library.search(q)
     val sources=hits.mapIndexed { i,p -> "[${i+1}] ${p.title} (passage ${p.id})\n${p.text}" }.joinToString("\n\n")
+    ui { fullSourcePassages=sources }
     if(hits.isEmpty()) { ui { output.text="No matching evidence found. Import relevant sources or rephrase your question. No answer was generated." };return@execute }
     val calculated=NumericEvidence.answer(q,hits.map { NumericEvidence.Source(it.text) })
     if(calculated!=null) {
@@ -194,6 +199,12 @@ class MainActivity: Activity() {
    } catch(e: Throwable) { ui { output.text="Research failed: ${e.message}" } }
    finally { ui { showingProgress=false;progressHandler.removeCallbacks(progressTick);busy(false);refresh() } }
   }
+ }
+ private fun showSourcePassages() {
+  val body=if(fullSourcePassages.isBlank()) "Search or generate an answer first." else fullSourcePassages
+  val view=TextView(this).apply { textSize=16f; setPadding(28,20,28,20); autoLinkMask=android.text.util.Linkify.WEB_URLS; text=body }
+  val scroll=ScrollView(this).apply { addView(view) }
+  AlertDialog.Builder(this).setTitle("Retrieved source passages").setView(scroll).setPositiveButton("Close",null).show()
  }
  private fun deviceInfo() {
   val am=getSystemService(ACTIVITY_SERVICE) as android.app.ActivityManager

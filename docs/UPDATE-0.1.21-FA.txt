@@ -1,0 +1,3 @@
+Astral 0.1.21-dev
+View source passages shows full retrieved passages and links when present. These passages may include text not sent to the model; the answer screen still shows the actual model excerpt. Opening a link requires a network connection. This update does not improve inference speed.
+Build with the existing signing key to preserve installed data. Android build and device testing were not available here.
