@@ -1,0 +1,1 @@
+Astral 0.1.22-dev: Search ranking gives a higher weight to a four-digit year in the source title, to better distinguish similarly named articles. It is a heuristic, not a guarantee of relevance. No database migration or data deletion. Tested using a SQLite sample and a scoring simulation; Android build and device test were unavailable. Build using the existing signing key.

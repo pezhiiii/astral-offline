@@ -34,7 +34,13 @@ internal object SearchPolicy {
  fun score(terms: List<String>, title: String, body: String): Int {
   val titleWords=tokens(title.substringBefore(" — "))
   val bodyWords=tokens(body)
-  return terms.sumOf { (if(it in titleWords) 4 else 0) + (if(it in bodyWords) 1 else 0) }
+  // A requested year is often the main distinguishing feature between near-identical
+  // articles (for example football championships in different years).
+  return terms.sumOf { term ->
+   val year=term.length==4 && term.all { it in '0'..'9' }
+   (if(term in titleWords) if(year) 24 else 4 else 0) +
+    (if(term in bodyWords) if(year) 3 else 1 else 0)
+  }
  }
 
  /** Rank definition-bearing passages above bibliography-like passages. */
