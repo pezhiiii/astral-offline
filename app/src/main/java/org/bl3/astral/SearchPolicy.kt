@@ -11,7 +11,7 @@ internal object SearchPolicy {
   "will may might must have has had not no yes if but so also only " +
   "more most less least both each any all some such same other " +
   "compare explain describe summarize cite source sources according " +
-  "please answer question using use requirement requirements requiring " +
+  "please answer question using use available their they them requirement requirements requiring " +
   "meet meets off").split(' ').toSet()
 
  fun tokens(text: String): Set<String> = word.findAll(text.lowercase(Locale.ROOT))
@@ -19,8 +19,19 @@ internal object SearchPolicy {
 
  fun terms(question: String): List<String> = tokens(question).filter { it !in stop }.take(32)
 
+ fun definitionAnchor(question: String, terms: List<String>): String? =
+  if(Regex("(?i)^\\s*(what is|what are|define)\\b").containsMatchIn(question)) terms.firstOrNull() else null
+
+ fun excerpt(text: String, terms: List<String>, maxWords: Int = 90): String {
+  val words=text.split(Regex("\\s+"))
+  if(words.size<=maxWords) return text
+  val anchor=words.indexOfFirst { tokens(it).any { token -> token in terms } }
+  val start=if(anchor<0) 0 else (anchor-maxWords/4).coerceIn(0,words.size-maxWords)
+  return (if(start>0) "… " else "") + words.subList(start,start+maxWords).joinToString(" ") + if(start+maxWords<words.size) " …" else ""
+ }
+
  fun score(terms: List<String>, title: String, body: String): Int {
-  val titleWords=tokens(title)
+  val titleWords=tokens(title.substringBefore(" — "))
   val bodyWords=tokens(body)
   return terms.sumOf { (if(it in titleWords) 4 else 0) + (if(it in bodyWords) 1 else 0) }
  }

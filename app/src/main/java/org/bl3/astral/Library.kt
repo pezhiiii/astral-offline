@@ -38,23 +38,24 @@ class Library(private val context: Context): SQLiteOpenHelper(context, "knowledg
  fun search(question: String): List<Passage> {
   val terms=SearchPolicy.terms(question)
   if(terms.isEmpty()) return emptyList()
-  val match=terms.joinToString(" OR ") { "\"$it\"" }
   val candidates=mutableListOf<Passage>()
   // Search the most specific query first, then retain broad matches for multi-source questions.
   // Both passes are bounded; neither is a complete ranking of a large corpus.
-  val queries=if(terms.size>1) listOf(terms.joinToString(" AND ") { "\"$it\"" },match) else listOf(match)
+  val queries=(listOf(terms.joinToString(" AND ") { "\"$it\"" }) + terms.flatMap { listOf("title:$it", "body:$it") }).distinct()
   val databases=mutableListOf(readableDatabase)
   val external=if(pack.exists()) SQLiteDatabase.openDatabase(pack.path,null,SQLiteDatabase.OPEN_READONLY) else null
   if(external!=null) databases.add(external)
   try { for ((dbIndex,db) in databases.withIndex()) for (query in queries) {
-   db.rawQuery("SELECT rowid,title,body FROM passages WHERE passages MATCH ? ORDER BY rowid LIMIT 120",arrayOf(query)).use { c ->
+   db.rawQuery("SELECT rowid,title,body FROM passages WHERE passages MATCH ? ORDER BY rowid LIMIT 80",arrayOf(query)).use { c ->
     while(c.moveToNext()) candidates+=Passage(if(dbIndex==0) c.getLong(0) else -c.getLong(0),c.getString(1),c.getString(2))
    }
   }
   } finally { external?.close() }
-  return candidates.distinctBy { it.id }.map { it to SearchPolicy.score(terms,it.title,it.text) }
+  val anchor=SearchPolicy.definitionAnchor(question,terms)
+  val perTitle=mutableMapOf<String,Int>()
+  return candidates.distinctBy { it.id }.filter { anchor==null || anchor in SearchPolicy.tokens(it.title.substringBefore(" — ")+" "+it.text) }.map { it to SearchPolicy.score(terms,it.title,it.text) }
    .filter { it.second>0 }
    .sortedWith(compareByDescending<Pair<Passage,Int>> { it.second }.thenBy { it.first.id })
-   .map { it.first }.distinctBy { it.text }.take(4)
+   .map { it.first }.distinctBy { it.text }.filter { val key=it.title.substringBefore(" — "); val n=perTitle.getOrDefault(key,0); perTitle[key]=n+1; n<2 }.take(4)
  }
 }
