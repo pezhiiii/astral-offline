@@ -31,6 +31,19 @@ internal object SearchPolicy {
   return (if(start>0) "… " else "") + words.subList(start,start+maxWords).joinToString(" ") + if(start+maxWords<words.size) " …" else ""
  }
 
+ /** Include a result-bearing window for event questions when the passage has one.
+  * The normal query-focused window is retained to preserve context. */
+ fun eventExcerpt(text: String, terms: List<String>, maxWords: Int): String {
+  val standard=excerpt(text,terms,maxWords)
+  if(terms.none { it in setOf("happened", "won", "winner", "result", "outcome") }) return standard
+  val words=text.split(Regex("\\s+"))
+  val result=words.indexOfFirst { tokens(it).any { token -> token in setOf("won", "winner", "defeated", "beat") } }
+  if(result<0) return standard
+  val resultTerms=listOf(words[result].trim { !it.isLetterOrDigit() })
+  val extra=excerpt(text,resultTerms,maxWords / 2)
+  return if(tokens(words[result]).any { it in tokens(standard) }) standard else standard+"\n… "+extra
+ }
+
  fun score(terms: List<String>, title: String, body: String): Int {
   val titleWords=tokens(title.substringBefore(" — "))
   val bodyWords=tokens(body)

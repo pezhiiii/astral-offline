@@ -24,6 +24,9 @@ fun main() {
  check(SearchPolicy.definitionRank(null,definition)==0)
  check(SearchPolicy.score(eco,"Ecosystem — https://en.wikipedia.org/wiki/Ecosystem","living organisms")>SearchPolicy.score(eco,"Aristotle — https://en.wikipedia.org/wiki/Aristotle","living organisms"))
  check(SearchPolicy.excerpt((1..200).joinToString(" "){"word$it"}, listOf("word100")).contains("word100"))
+ val eventText="The championship began in 1903. " + (1..100).joinToString(" "){"background$it"} + " Leipzig won the final against Prague."
+ check(SearchPolicy.eventExcerpt(eventText, listOf("1903", "happened"), 40).contains("won"))
+ check(SearchPolicy.eventExcerpt(eventText, listOf("1903"), 40)==SearchPolicy.excerpt(eventText, listOf("1903"), 40))
  val football=SearchPolicy.terms("What happened in the 1903 German football championship?")
  val target=SearchPolicy.score(football,"1903 German football championship","The 1903 championship was the first.")
  val other=SearchPolicy.score(football,"1930 German football championship","The 1930 final equalled a record set in 1903.")
