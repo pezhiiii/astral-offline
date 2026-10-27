@@ -39,9 +39,13 @@ class Library(private val context: Context): SQLiteOpenHelper(context, "knowledg
   val terms=SearchPolicy.terms(question)
   if(terms.isEmpty()) return emptyList()
   val candidates=mutableListOf<Passage>()
-  // Retrieve pairs before single words so common words cannot crowd out topical matches.
-  val pairs=terms.take(8).flatMapIndexed { i,a -> terms.take(8).drop(i+1).map { b -> "\"$a\" AND \"$b\"" } }
-  val queries=(listOf(terms.joinToString(" AND ") { "\"$it\"" }) + pairs + terms.flatMap { listOf("title:$it", "body:$it") }).distinct()
+  // Focus definition questions on their subject; generic words like "living" do not
+  // justify sending unrelated documents to the language model.
+  val anchor=SearchPolicy.definitionAnchor(question,terms)
+  val focus=terms.take(8)
+  val pairs=focus.take(4).flatMapIndexed { i,a -> focus.take(4).drop(i+1).map { b -> "\"$a\" AND \"$b\"" } }
+  val queries=if(anchor!=null) listOf("title:$anchor", "body:$anchor") else
+   (listOf(focus.joinToString(" AND ") { "\"$it\"" }) + pairs + focus.flatMap { listOf("title:$it", "body:$it") }).distinct()
   val databases=mutableListOf(readableDatabase)
   val external=if(pack.exists()) SQLiteDatabase.openDatabase(pack.path,null,SQLiteDatabase.OPEN_READONLY) else null
   if(external!=null) databases.add(external)
@@ -51,7 +55,6 @@ class Library(private val context: Context): SQLiteOpenHelper(context, "knowledg
    }
   }
   } finally { external?.close() }
-  val anchor=SearchPolicy.definitionAnchor(question,terms)
   val perTitle=mutableMapOf<String,Int>()
   return candidates.distinctBy { it.id }.filter { anchor==null || anchor in SearchPolicy.tokens(it.title.substringBefore(" — ")+" "+it.text) }.map { it to SearchPolicy.score(terms,it.title,it.text) }
    .filter { it.second>0 }
