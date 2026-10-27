@@ -31,8 +31,19 @@ internal object SearchPolicy {
  fun excerpt(text: String, terms: List<String>, maxWords: Int = 90): String {
   val words=text.split(Regex("\\s+"))
   if(words.size<=maxWords) return text
-  val anchor=words.indexOfFirst { tokens(it).any { token -> token in terms } }
-  val start=if(anchor<0) 0 else (anchor-maxWords/4).coerceIn(0,words.size-maxWords)
+  // Prefer the window containing the most distinct question terms. Ties favor
+  // the earlier window, which preserves the previous bias toward introductions.
+  val wanted=terms.toSet()
+  val wordTokens=words.map { tokens(it).intersect(wanted) }
+  val counts=mutableMapOf<String,Int>()
+  fun add(index: Int) { for(token in wordTokens[index]) counts[token]=counts.getOrDefault(token,0)+1 }
+  fun remove(index: Int) { for(token in wordTokens[index]) { val n=counts.getValue(token)-1; if(n==0) counts.remove(token) else counts[token]=n } }
+  for(i in 0 until maxWords) add(i)
+  var start=0; var best=counts.size
+  for(i in 1..(words.size-maxWords)) {
+   remove(i-1);add(i+maxWords-1)
+   if(counts.size>best) { best=counts.size;start=i }
+  }
   return (if(start>0) "… " else "") + words.subList(start,start+maxWords).joinToString(" ") + if(start+maxWords<words.size) " …" else ""
  }
 

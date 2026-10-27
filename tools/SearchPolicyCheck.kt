@@ -30,6 +30,9 @@ fun main() {
  val eventText="The championship began in 1903. " + (1..100).joinToString(" "){"background$it"} + " Leipzig won the final against Prague."
  check(SearchPolicy.eventExcerpt(eventText, listOf("1903", "happened"), 40).contains("won"))
  check(SearchPolicy.eventExcerpt(eventText, listOf("1903"), 40)==SearchPolicy.excerpt(eventText, listOf("1903"), 40))
+ val twoSubjects="Atlas " + (1..80).joinToString(" "){"background$it"} + " Atlas and Nova were compared. " + (1..80).joinToString(" "){"ending$it"}
+ val bothExcerpt=SearchPolicy.excerpt(twoSubjects, listOf("atlas", "nova"), 30)
+ check(SearchPolicy.tokens(bothExcerpt).containsAll(listOf("atlas", "nova"))) { "Excerpt should keep both query subjects when possible" }
  val football=SearchPolicy.terms("What happened in the 1903 German football championship?")
  val target=SearchPolicy.score(football,"1903 German football championship","The 1903 championship was the first.")
  val other=SearchPolicy.score(football,"1930 German football championship","The 1930 final equalled a record set in 1903.")

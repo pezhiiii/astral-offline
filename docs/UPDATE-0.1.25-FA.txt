@@ -1,0 +1,1 @@
+Astral 0.1.25-dev: A bounded excerpt is chosen to contain more distinct question terms where possible. It remains a lexical heuristic and may miss relevant evidence. The previous version source changes are included. A Python simulation and ZIP integrity check passed; Kotlin, Android build and phone testing were unavailable. Use the existing signing key.
