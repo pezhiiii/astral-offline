@@ -3,6 +3,8 @@ import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
 import android.graphics.*
+import android.graphics.drawable.GradientDrawable
+import android.content.res.ColorStateList
 import android.os.Handler
 import android.os.Looper
 import android.view.WindowManager
@@ -47,22 +49,31 @@ class MainActivity: Activity() {
  private fun ui(task: ()->Unit) { runOnUiThread { if(!destroyed) task() } }
  override fun onCreate(state: Bundle?) {
   super.onCreate(state); library=Library(this)
-  val root=LinearLayout(this).apply { orientation=1; setPadding(28,32,28,20); setBackgroundColor(Color.rgb(9,15,30)) }
-  val scroll=ScrollView(this);scroll.addView(root);setContentView(scroll)
-  root.addView(TextView(this).apply { text="A S T R A L · 0.1.15"; textSize=29f; setTextColor(Color.WHITE) })
-  root.addView(Scout(this),LinearLayout.LayoutParams(-1,180))
-  root.addView(TextView(this).apply { text="Your knowledge. Beyond the signal."; textSize=16f;setTextColor(Color.CYAN) })
-  status=TextView(this).apply { setTextColor(Color.LTGRAY);setPadding(0,18,0,18) };root.addView(status)
-  fun button(label: String, action: ()->Unit): Button = Button(this).apply { text=label;setOnClickListener { action() };root.addView(this) }
-  modelButton=button("1 · Import local GGUF model") { pick(10,"*/*") }
-  documentButton=button("2 · Add UTF-8 text document") { pick(11,"text/*") }
-  packButton=button("3 · Import offline knowledge pack") { pick(12,"*/*") }
-  question=EditText(this).apply { hint="Ask a research question…";setTextColor(Color.WHITE);setHintTextColor(Color.GRAY);minLines=2 };root.addView(question)
-  ask=button("Research offline") { research() }
+  window.statusBarColor=Color.rgb(10,16,29); window.navigationBarColor=Color.rgb(10,16,29)
+  fun rounded(color: Int, radius: Float): GradientDrawable = GradientDrawable().apply { setColor(color); cornerRadius=radius }
+  val root=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL; setPadding(28,24,28,20); setBackgroundColor(Color.rgb(10,16,29)) }
+  val scroll=ScrollView(this).apply { isFillViewport=true };scroll.addView(root);setContentView(scroll)
+  root.addView(TextView(this).apply { text="✦  Astral"; textSize=27f; typeface=Typeface.create("sans-serif-medium",Typeface.NORMAL);setTextColor(Color.WHITE) })
+  root.addView(TextView(this).apply { text="Offline research  ·  0.1.16";textSize=14f;setTextColor(Color.rgb(131,207,211));setPadding(0,5,0,5) })
+  status=TextView(this).apply { setTextColor(Color.LTGRAY);textSize=13f;setPadding(0,10,0,16) };root.addView(status)
+  fun button(label: String, action: ()->Unit): Button = Button(this).apply {
+   text=label;isAllCaps=false;textSize=14f;setTextColor(Color.WHITE)
+   background=rounded(Color.rgb(35,49,68),22f);setOnClickListener { action() }
+   val lp=LinearLayout.LayoutParams(-1,-2);lp.setMargins(0,4,0,6);root.addView(this,lp)
+  }
+  modelButton=button("Import local GGUF model") { pick(10,"*/*") }
+  documentButton=button("Add text document") { pick(11,"text/*") }
+  packButton=button("Import offline knowledge pack") { pick(12,"*/*") }
+  question=EditText(this).apply {
+   hint="Ask anything about your offline sources…";setTextColor(Color.WHITE);setHintTextColor(Color.rgb(150,160,175));textSize=16f
+   minLines=2;setPadding(22,18,22,18);background=rounded(Color.rgb(28,39,55),24f)
+  };root.addView(question,LinearLayout.LayoutParams(-1,-2).apply { setMargins(0,12,0,8) })
+  ask=button("Research offline  →") { research() };ask.background=rounded(Color.rgb(0,127,137),22f)
   button("Stop generation") { runCatching { Engine.cancel() };status.text="Stop requested" }
-  output=TextView(this).apply { setTextColor(Color.WHITE);textSize=16f;setTextIsSelectable(true);setPadding(0,20,0,24) };root.addView(output)
+  output=TextView(this).apply { setTextColor(Color.WHITE);textSize=16f;setTextIsSelectable(true);setPadding(20,22,20,22);background=rounded(Color.rgb(22,33,48),24f) }
+  root.addView(output,LinearLayout.LayoutParams(-1,-2).apply { setMargins(0,12,0,10) })
   button("Device & evidence") { deviceInfo() }
-  output.text="Import a model and your source documents. Without a model, Research shows retrieved passages only. No generated answer is simulated.\n\nPrototype: not yet validated for the bounty."
+  output.text="Welcome to Astral. Import a model and offline sources, then ask a question. Answers can contain mistakes; check the evidence."
   refresh()
  }
  private fun pick(code: Int, mime: String) { startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT).apply { type=mime;addCategory(Intent.CATEGORY_OPENABLE) },code) }
@@ -70,7 +81,7 @@ class MainActivity: Activity() {
   if(value) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
   else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
   ask.isEnabled=!value;modelButton.isEnabled=!value;documentButton.isEnabled=!value;packButton.isEnabled=!value }
- private fun refresh() { status.text="OFFLINE · ${library.count()} passages · Model ${if(model.exists()) "imported" else "missing"}" }
+ private fun refresh() { status.text="OFFLINE · ${library.count()} personal passages · Pack ${if(library.packFile().exists()) "ready" else "missing"} · Model ${if(model.exists()) "ready" else "missing"}" }
  @Deprecated("Platform callback")
  override fun onActivityResult(requestCode: Int,resultCode: Int,data: Intent?) {
   super.onActivityResult(requestCode,resultCode,data)
