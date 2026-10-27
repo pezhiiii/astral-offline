@@ -63,6 +63,20 @@ internal object SearchPolicy {
   return if(standard.contains(resultWindow)) standard else standard+"\n… "+resultWindow+(if(start+width<words.size) " …" else "")
  }
 
+ /** Keep ranked first source, preferring a second document for comparison queries. */
+ fun modelSourceIndices(question: String, titles: List<String>, limit: Int): List<Int> {
+  if(limit<=0 || titles.isEmpty()) return emptyList()
+  val count=minOf(limit,titles.size)
+  val compare=Regex("(?i)\\b(compare|comparison|versus|difference|differences|vs)\\b").containsMatchIn(question)
+  if(!compare || count==1) return (0 until count).toList()
+  val first=titles[0].substringBefore(" — ")
+  val second=(1 until titles.size).firstOrNull { titles[it].substringBefore(" — ") != first }
+  val selected=mutableListOf(0)
+  if(second!=null) selected.add(second)
+  for(i in 1 until titles.size) if(selected.size<count && i !in selected) selected.add(i)
+  return selected.take(count)
+ }
+
  fun score(terms: List<String>, title: String, body: String): Int {
   val titleWords=tokens(title.substringBefore(" — "))
   val bodyWords=tokens(body)
