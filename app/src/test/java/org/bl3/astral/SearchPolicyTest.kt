@@ -4,6 +4,13 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class SearchPolicyTest {
+ @Test fun outcomePreferenceRequiresMatchingEventTitle() {
+  val q="What happened in the 1903 German football championship?"
+  assertEquals(12,SearchPolicy.eventRank(q,"1903 German football championship","Leipzig won the final."))
+  assertEquals(0,SearchPolicy.eventRank(q,"1903 Cork championship","Lees won the final."))
+  assertEquals(0,SearchPolicy.eventRank(q,"1903 German football championship","The first national tournament."))
+ }
+
  @Test fun requestedCountDoesNotMatchFootballDivision() {
   val q="Who was Aristotle? Explain two of his contributions and cite the evidence."
   assertFalse(SearchPolicy.terms(q).contains("two"))

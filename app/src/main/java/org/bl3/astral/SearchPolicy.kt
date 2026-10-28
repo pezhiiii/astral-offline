@@ -108,6 +108,13 @@ internal object SearchPolicy {
   }
  }
 
+ /** Prefer outcome-bearing passages within an already identified event title. */
+ fun eventRank(question: String, title: String, body: String): Int {
+  if(terms(question).none { it in setOf("happened", "won", "winner", "result", "outcome") }) return 0
+  if(focusedTitle(question,listOf(title))==null) return 0
+  return if(tokens(body).any { it in setOf("won", "winner", "defeated", "beat") }) 12 else 0
+ }
+
  /** Rank definition-bearing passages above bibliography-like passages. */
  fun definitionRank(anchor: String?, body: String): Int {
   if(anchor==null) return 0
