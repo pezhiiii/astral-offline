@@ -13,7 +13,7 @@ internal object SearchPolicy {
   "compare explain describe summarize cite source sources according " +
   "please answer question using use available their they them requirement requirements requiring " +
   "give given information based evidence direct directly example examples briefly short " +
-  "meet meets off").split(' ').toSet()
+  "meet meets off one two three four five six seven eight nine ten his her").split(' ').toSet()
 
  fun tokens(text: String): Set<String> = word.findAll(text.lowercase(Locale.ROOT))
   .map { it.value }.toSet()

@@ -1,1 +1,1 @@
-Source update only. Biography queries beginning Who was/is require the subject in the retrieved passage title or body. No Android build or runtime tests performed. Preserve existing signing key and app data.
+0.1.37 source only. Request counts (one/two/etc.) and pronouns excluded from retrieval keywords. Biography subject filter retained. Model instructed to answer all parts within 90 words and admit missing evidence. Unit regression added; not executed: Kotlin/Android build tools unavailable. Preserve signing key and app data. No measured speed or accuracy claim.

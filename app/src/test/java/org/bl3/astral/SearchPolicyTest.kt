@@ -4,6 +4,12 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class SearchPolicyTest {
+ @Test fun requestedCountDoesNotMatchFootballDivision() {
+  val q="Who was Aristotle? Explain two of his contributions and cite the evidence."
+  assertFalse(SearchPolicy.terms(q).contains("two"))
+  assertEquals(0,SearchPolicy.score(SearchPolicy.terms(q),"1912 Scottish Division Two","The championship was won by Ayr United."))
+ }
+
  @Test fun biographyRequiresItsSubject() {
   assertEquals("aristotle",SearchPolicy.subjectAnchor("Who was Aristotle? Explain two of his contributions and cite the evidence."))
   assertNull(SearchPolicy.subjectAnchor("Compare Aristotle and Plato"))
