@@ -11,6 +11,10 @@ set(LLAMA_CURL OFF CACHE BOOL "" FORCE)
 set(LLAMA_OPENSSL OFF CACHE BOOL "" FORCE)
 set(GGML_OPENMP OFF CACHE BOOL "" FORCE)
 set(GGML_NATIVE OFF CACHE BOOL "" FORCE)
+# Optional ARM kernels; upstream detects supported CPU features at runtime.
+# Build with -DASTRAL_KLEIDIAI=OFF to compare against the previous CPU path.
+option(ASTRAL_KLEIDIAI "Enable upstream KleidiAI ARM kernels" ON)
+set(GGML_CPU_KLEIDIAI ${ASTRAL_KLEIDIAI} CACHE BOOL "" FORCE)
 add_subdirectory(../../../../vendor/llama.cpp llama-build)
 add_library(astral SHARED engine.cpp)
 target_link_libraries(astral PRIVATE llama android log)

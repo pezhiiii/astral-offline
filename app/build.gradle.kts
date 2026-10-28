@@ -12,7 +12,7 @@ android {
  }
  defaultConfig {
   applicationId = "org.bl3.astral"; minSdk = 28; targetSdk = 35
-  versionCode = 41; versionName = "0.1.40-dev"
+  versionCode = 42; versionName = "0.1.41-dev"
   ndk { abiFilters += "arm64-v8a" }
   externalNativeBuild { cmake { cppFlags += "-std=c++17" } }
  }
