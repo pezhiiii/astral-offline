@@ -78,8 +78,9 @@ class Library(private val context: Context): SQLiteOpenHelper(context, "knowledg
   val ranked=candidates.distinctBy { it.id }.filter { anchor==null || anchor in SearchPolicy.tokens(it.title.substringBefore(" — ")+" "+it.text) }.map { it to SearchPolicy.score(terms,it.title,it.text) }
    .filter { it.second>0 }
    .sortedWith(compareByDescending<Pair<Passage,Int>> { it.second + SearchPolicy.definitionRank(anchor,it.first.text) + SearchPolicy.eventRank(question,it.first.title,it.first.text) }.thenBy { kotlin.math.abs(it.first.id) })
-   .map { it.first }.distinctBy { it.text }.filter { val key=it.title.substringBefore(" — "); val n=perTitle.getOrDefault(key,0); perTitle[key]=n+1; n<2 }.take(4)
+   .map { it.first }.distinctBy { it.text }
   val focused=SearchPolicy.focusedTitle(question,ranked.map { it.title })
-  return if(focused==null) ranked else ranked.filter { it.title.substringBefore(" — ").equals(focused,ignoreCase=true) }
+  val relevant=if(focused==null) ranked else ranked.filter { it.title.substringBefore(" — ").equals(focused,ignoreCase=true) }
+  return relevant.filter { val key=it.title.substringBefore(" — "); val n=perTitle.getOrDefault(key,0); perTitle[key]=n+1; n<2 }.take(4)
  }
 }
