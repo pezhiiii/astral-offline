@@ -64,13 +64,7 @@ internal object SearchPolicy {
  /** Lexical subject gate, not a claim verifier. Reject incidental mentions and
   * require comparison subjects to occur together in the candidate passage. */
  fun acceptsSubject(question: String, title: String, body: String): Boolean {
-  // A comparison needs contrast language in the passage, not merely both names
-  // somewhere in a historical or bibliographic passage. This is a lexical
-  // heuristic and can miss valid comparisons written without these markers.
-  if(Regex("(?i)\\b(compare|comparison|different|difference|differences|versus|vs)\\b").containsMatchIn(question)) {
-   val contrast=Regex("(?i)\\b(whereas|while|unlike|differ|differs|different|difference|differences|lack|lacks|instead)\\b")
-   if(!contrast.containsMatchIn(body)) return false
-  }
+  if(isComparison(question) && comparisonQuote(question,body)==null) return false
   val titleWords=tokens(title.substringBefore(" — "))
   val bodyWords=tokens(body)
   val anchor=subjectAnchor(question) ?: definitionAnchor(question,terms(question))
@@ -88,6 +82,29 @@ internal object SearchPolicy {
   fun forms(term: String)=if(term.endsWith("s") && !term.endsWith("ss") && term.length>3) setOf(term,term.dropLast(1)) else setOf(term,term+"s")
   val available=titleWords+bodyWords
   return subject.all { forms(it).any { form -> form in available } }
+ }
+
+ fun isComparison(question: String): Boolean = Regex("(?i)\\b(compare|comparison|different|difference|differences|versus|vs)\\b").containsMatchIn(question)
+
+ /** Return source sentences verbatim; no synthesized comparison claims.
+  * All content subject terms must occur in the same contrast sentence.
+  * Conservative lexical extraction, not semantic verification. */
+ fun comparisonQuote(question: String, body: String): String? {
+  if(!isComparison(question)) return null
+  val subjects=terms(question.substringBefore('?')).filter {
+   it !in setOf("different","difference","differences","between","versus","vs","comparison")
+  }
+  if(subjects.isEmpty()) return null
+  val contrast=Regex("(?i)\\b(whereas|while|unlike|differ|differs|different|difference|differences|lack|lacks|instead)\\b")
+  return body.split(Regex("(?<=[.!?])\\s+|\\n+"))
+   .filter { sentence ->
+    val words=tokens(sentence)
+    contrast.containsMatchIn(sentence) && subjects.all { term ->
+     val singular=if(term.endsWith("s") && !term.endsWith("ss") && term.length>3) term.dropLast(1) else term
+     term in words || singular in words || singular+"s" in words
+    }
+   }.filter { it.split(Regex("\\s+")).size<=100 }
+   .distinct().take(2).joinToString("\n").ifBlank { null }
  }
 
  fun subjectAnchor(question: String): String? {

@@ -194,6 +194,12 @@ class MainActivity: Activity() {
     val sources=hits.mapIndexed { i,p -> "[${i+1}] ${p.title} (passage ${p.id})\n${p.text}" }.joinToString("\n\n")
     ui { fullSourcePassages=sources }
     if(hits.isEmpty()) { ui { output.text="No matching evidence found. Import relevant sources or rephrase your question. No answer was generated." };return@execute }
+    if(SearchPolicy.isComparison(q)) {
+     val quotes=hits.mapIndexedNotNull { i,p -> SearchPolicy.comparisonQuote(q,p.text)?.let { "[${i+1}] "+it } }
+     val quoteText=quotes.joinToString("\n\n")
+     ui { output.text="SOURCE QUOTATIONS — extracted verbatim, not an AI-generated comparison. These passages may cover only part of your question.\n\n$quoteText\n\nLOCAL SOURCES\n"+hits.mapIndexed { i,p -> "[${i+1}] ${p.title}" }.joinToString("\n")+"\n\nElapsed: ${"%.3f".format((System.nanoTime()-started)/1e9)} s" }
+     return@execute
+    }
     val calculated=NumericEvidence.answer(q,hits.map { NumericEvidence.Source(it.text) })
     if(calculated!=null) {
      ui { output.text="$calculated\n\nLOCAL EVIDENCE\n$sources\n\nElapsed: ${"%.3f".format((System.nanoTime()-started)/1e9)} s" }
