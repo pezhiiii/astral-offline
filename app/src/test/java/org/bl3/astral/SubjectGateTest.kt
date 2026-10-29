@@ -4,6 +4,13 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class SubjectGateTest {
+ @Test fun rejectsThirdPartyNucleusContrast() {
+  assertNull(SearchPolicy.comparisonQuote("How are plant cells different from animal cells?", "Bacteria and archaea lack a membrane-bound nucleus; animal and plant cells have nuclei and other organelles."))
+ }
+ @Test fun rejectsSharedMechanisms() {
+  assertNull(SearchPolicy.comparisonQuote("How are plant cells different from animal cells?", "While plants use many of the same mechanisms as animals, surrounding cells determine their fate."))
+ }
+
  @Test fun selectsActualContrastSentence() {
   val sentence="Unlike animals, many plant cells remain totipotent."
   assertEquals(sentence,SearchPolicy.comparisonQuote("How are plant cells different from animal cells?", "Cells were studied in 1838. "+sentence))

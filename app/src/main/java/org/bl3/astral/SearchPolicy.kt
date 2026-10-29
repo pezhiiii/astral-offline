@@ -99,12 +99,35 @@ internal object SearchPolicy {
   return body.split(Regex("(?<=[.!?])\\s+|\\n+"))
    .filter { sentence ->
     val words=tokens(sentence)
-    contrast.containsMatchIn(sentence) && subjects.all { term ->
+    comparisonContrast(subjects,sentence) && contrast.containsMatchIn(sentence) && subjects.all { term ->
      val singular=if(term.endsWith("s") && !term.endsWith("ss") && term.length>3) term.dropLast(1) else term
      term in words || singular in words || singular+"s" in words
     }
    }.filter { it.split(Regex("\\s+")).size<=100 }
    .distinct().take(2).joinToString("\n").ifBlank { null }
+ }
+
+ /** Reject shared-property statements and contrasts led by an unrelated
+  * third subject. Still lexical: no semantic correctness guarantee. */
+ private fun comparisonContrast(subjects: List<String>, sentence: String): Boolean {
+  if(Regex("(?i)\\b(same|similar|similarly|both|shared)\\b").containsMatchIn(sentence)) return false
+  val marker=Regex("(?i)\\b(unlike|whereas|while|differ|differs|different|difference|differences|lack|lacks|instead)\\b").find(sentence) ?: return false
+  val topicWords=subjects.flatMap { term ->
+   val base=if(term.endsWith("s") && !term.endsWith("ss") && term.length>3) term.dropLast(1) else term
+   listOf(base,base+"s")
+  }.toSet()
+  val before=tokens(sentence.substring(0,marker.range.first))
+  if(before.any { it in topicWords }) return true
+  // "Unlike animals, many plant cells ..." starts with the comparison.
+  if(marker.value.equals("unlike",true)) {
+   val after=sentence.substring(marker.range.last+1).substringBefore(',')
+   return tokens(after).any { it in topicWords }
+  }
+  if(marker.value.equals("while",true)) {
+   val clause=sentence.substring(marker.range.last+1).substringBefore(',')
+   return tokens(clause).any { it in topicWords }
+  }
+  return false
  }
 
  fun subjectAnchor(question: String): String? {
