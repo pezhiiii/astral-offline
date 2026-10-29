@@ -96,7 +96,7 @@ internal object SearchPolicy {
   }
   if(subjects.isEmpty()) return null
   val contrast=Regex("(?i)\\b(whereas|while|unlike|differ|differs|different|difference|differences|lack|lacks|instead)\\b")
-  return body.split(Regex("(?<=[.!?])\\s+|\\n+"))
+  return DocumentSections.quotationBody(body).split(Regex("(?<=[.!?])\\s+|\\n+"))
    .filter { sentence ->
     val words=tokens(sentence)
     comparisonContrast(subjects,sentence) && contrast.containsMatchIn(sentence) && subjects.all { term ->

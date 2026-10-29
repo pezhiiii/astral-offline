@@ -4,6 +4,9 @@ package org.bl3.astral
 internal object DocumentSections {
  data class Section(val title: String, val body: String)
  private val header=Regex("(?m)^ARTICLE: ([^\\r\\n]{1,180})\\r?\\nSOURCE: (https?://[^\\s]+)")
+ /** Also clean previously imported passages without requiring re-import. Only
+  * paired, structured headers are removed; ordinary prose is preserved. */
+ fun quotationBody(text: String): String = header.replace(text, "").trim()
  fun split(filename: String, text: String): List<Section> {
   val matches=header.findAll(text).toList()
   if(matches.isEmpty()) return listOf(Section(filename,text))
@@ -15,7 +18,7 @@ internal object DocumentSections {
    val end=if(i+1<matches.size) matches[i+1].range.first else text.length
    val article=match.groupValues[1].trim()
    val url=match.groupValues[2]
-   val body=text.substring(match.range.first,end).trim()
+   val body=text.substring(match.range.last+1,end).trim()
    if(body.isNotEmpty()) out.add(Section("$filename / $article — $url",body))
   }
   return out
