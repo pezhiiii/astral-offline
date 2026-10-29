@@ -4,6 +4,17 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class SubjectGateTest {
+ @Test fun rejectsDefinitionOfLargerSubject() {
+  val text="An early form of conservation of mass is a philosophical notion."
+  assertFalse(SearchPolicy.acceptsSubject("What is mass?","Chemistry",text))
+  assertEquals(0,SearchPolicy.definitionRank("mass",text))
+ }
+ @Test fun acceptsDirectDefinitionAfterSentence() {
+  val text="Physical quantities describe matter. Mass is a measure of inertia."
+  assertTrue(SearchPolicy.acceptsSubject("What is mass?","Physics",text))
+  assertTrue(SearchPolicy.definitionRank("mass",text)>0)
+ }
+
  @Test fun acceptsRepeatedTopicInOtherDefinition() {
   val q="What is the difference between weather and climate? Cite the sources."
   val source="Weather describes atmospheric conditions over a short time, whereas climate describes patterns and averages of weather over many years."

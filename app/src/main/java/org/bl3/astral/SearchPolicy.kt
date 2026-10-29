@@ -71,7 +71,7 @@ internal object SearchPolicy {
   if(anchor!=null) {
    if(anchor in titleWords) return true
    val escaped=Regex.escape(anchor)
-   val defining=Regex("(?i)\\b$escaped\\s+(?:is|are|was|were|refers to|means|consists of)\\b")
+   val defining=directDefinition(escaped)
    return defining.containsMatchIn(body)
   }
   val subject=terms(question.substringBefore('?')).filter {
@@ -213,10 +213,16 @@ internal object SearchPolicy {
  }
 
  /** Rank definition-bearing passages above bibliography-like passages. */
+ /** Require the requested term to lead a sentence, rather than be the
+  * tail of a different subject such as "conservation of mass". */
+ private fun directDefinition(escaped: String): Regex = Regex(
+  "(?i)(?:^|[.!?]\\s+|\\n+|={2,}\\s*)(?:the\\s+)?$escaped\\s+(?:is|are|was|were|refers to|means|consists of)\\b"
+ )
+
  fun definitionRank(anchor: String?, body: String): Int {
   if(anchor==null) return 0
   val escaped=Regex.escape(anchor)
-  val definition=Regex("(?i)\\b$escaped\\s+(?:is|are|refers to|means|consists of)\\b")
+  val definition=directDefinition(escaped)
   val citations=Regex("(?i)\\b(?:doi|isbn|retrieved|archived|journal|bibliography)\\b")
    .findAll(body).take(4).count()
   return (if(definition.containsMatchIn(body)) 8 else 0) - citations * 2
