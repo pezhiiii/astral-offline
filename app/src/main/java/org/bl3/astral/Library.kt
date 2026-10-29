@@ -75,7 +75,7 @@ class Library(private val context: Context): SQLiteOpenHelper(context, "knowledg
   }
   } finally { external?.close() }
   val perTitle=mutableMapOf<String,Int>()
-  val ranked=candidates.distinctBy { it.id }.filter { anchor==null || anchor in SearchPolicy.tokens(it.title.substringBefore(" — ")+" "+it.text) }.map { it to SearchPolicy.score(terms,it.title,it.text) }
+  val ranked=candidates.distinctBy { it.id }.filter { SearchPolicy.acceptsDatedSubject(question,it.title,it.text) }.filter { anchor==null || anchor in SearchPolicy.tokens(it.title.substringBefore(" — ")+" "+it.text) }.map { it to SearchPolicy.score(terms,it.title,it.text) }
    .filter { it.second>0 }
    .sortedWith(compareByDescending<Pair<Passage,Int>> { it.second + SearchPolicy.definitionRank(anchor,it.first.text) + SearchPolicy.eventRank(question,it.first.title,it.first.text) }.thenBy { kotlin.math.abs(it.first.id) })
    .map { it.first }.distinctBy { it.text }

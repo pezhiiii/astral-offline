@@ -4,6 +4,16 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class SearchPolicyTest {
+ @Test fun missingDatedEventCannotFallBackToOceanography() {
+  val q="What happened in the 1903 German football championship? Cite the source."
+  assertFalse(SearchPolicy.acceptsDatedSubject(q,"Marine biology","A German institute was founded in 1903."))
+  assertFalse(SearchPolicy.acceptsDatedSubject(q,"1903 Cork football championship","Lees won."))
+  assertTrue(SearchPolicy.acceptsDatedSubject(q,"1903 German football championship","The first national tournament."))
+  assertTrue(SearchPolicy.acceptsDatedSubject(q,"Personal notes","The 1903 German football championship was held."))
+  assertFalse(SearchPolicy.acceptsDatedSubject(q,"Unrelated — https://example.org/1903_German_football_championship","Marine biology."))
+  assertTrue(SearchPolicy.acceptsDatedSubject("What is an ecosystem?","Ecosystem","An ecosystem includes organisms."))
+ }
+
  @Test fun outcomePreferenceRequiresMatchingEventTitle() {
   val q="What happened in the 1903 German football championship?"
   assertEquals(12,SearchPolicy.eventRank(q,"1903 German football championship","Leipzig won the final."))

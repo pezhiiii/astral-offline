@@ -33,6 +33,20 @@ internal object SearchPolicy {
   }?.substringBefore(" — ")
  }
 
+ /** Conservative lexical gate for a single dated subject. Shared years alone
+  * are not evidence of relevance. URLs are excluded from the title match.
+  * This can reject synonyms; it is not a semantic entailment check. */
+ fun acceptsDatedSubject(question: String, title: String, body: String): Boolean {
+  if(Regex("(?i)\\b(compare|comparison|versus|difference|differences|vs)\\b").containsMatchIn(question)) return true
+  val subject=terms(question.substringBefore('?')).filter {
+   it !in setOf("happened", "happen", "won", "winner", "result", "outcome")
+  }
+  val years=subject.filter { it.length==4 && it.all { c -> c in '0'..'9' } }
+  if(years.size!=1 || subject.size<3) return true
+  val available=tokens(title.substringBefore(" — ")+" "+body)
+  return subject.all { it in available }
+ }
+
  fun subjectAnchor(question: String): String? {
   val match=Regex("(?i)^\\s*who\\s+(?:is|was|were|are)\\s+([^?]+)").find(question) ?: return null
   return terms(match.groupValues[1]).firstOrNull()
