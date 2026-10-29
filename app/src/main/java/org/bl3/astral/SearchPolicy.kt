@@ -164,6 +164,32 @@ internal object SearchPolicy {
 
  /** Include a result-bearing window for event questions when the passage has one.
   * The normal query-focused window is retained to preserve context. */
+ /** Whole source sentences for short definition questions. No added claims.
+  * Skip over-budget sentences rather than sending a cut-off definition. */
+ fun definitionExcerpt(text: String, anchor: String, maxWords: Int = 90): String {
+  if(maxWords<=0) return ""
+  val cleaned=DocumentSections.quotationBody(text)
+  val sentences=cleaned.split(Regex("(?<=[.!?])\\s+|\\n+"))
+   .map { it.trim() }.filter { it.isNotEmpty() &&
+    !it.startsWith("Attribution:") && !it.startsWith("License:") &&
+    !it.startsWith("SOURCE:") && !it.startsWith("ARTICLE:") &&
+    Regex("[.!?]$").containsMatchIn(it) }
+  val head=Regex("(?i)^(?:the\\s+)?${Regex.escape(anchor)}\\s+(?:is|are|can|refers|means)\\b")
+  val ranked=sentences.withIndex().sortedWith(compareByDescending<IndexedValue<String>> {
+   (if(head.containsMatchIn(it.value)) 10 else 0) +
+    (if(head.containsMatchIn(it.value) && Regex("(?i)\\b(defined|measure|measures)\\b").containsMatchIn(it.value)) 3 else 0)
+  }.thenBy { it.index })
+  var used=0
+  val selected=mutableListOf<IndexedValue<String>>()
+  for(item in ranked) {
+   val count=item.value.split(Regex("\\s+")).size
+   if(used+count<=maxWords && tokens(item.value).contains(anchor)) {
+    selected.add(item);used+=count
+   }
+  }
+  return selected.sortedBy { it.index }.joinToString("\n") { it.value }
+ }
+
  fun eventExcerpt(text: String, terms: List<String>, maxWords: Int): String {
   val standard=excerpt(text,terms,maxWords)
   if(terms.none { it in setOf("happened", "won", "winner", "result", "outcome") }) return standard

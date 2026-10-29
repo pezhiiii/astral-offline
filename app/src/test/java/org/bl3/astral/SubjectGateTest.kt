@@ -4,6 +4,15 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class SubjectGateTest {
+ @Test fun definitionEvidenceDoesNotCutSentence() {
+  val text="Mass is a physical quantity. Mass can be experimentally defined as a measure of inertia. Attribution: metadata."
+  val result=SearchPolicy.definitionExcerpt(text,"mass",20)
+  assertTrue(result.contains("measure of inertia."))
+  assertFalse(result.contains("Attribution:"))
+  assertTrue(result.endsWith("."))
+  assertEquals("",SearchPolicy.definitionExcerpt(text,"mass",2))
+ }
+
  @Test fun rejectsDefinitionOfLargerSubject() {
   val text="An early form of conservation of mass is a philosophical notion."
   assertFalse(SearchPolicy.acceptsSubject("What is mass?","Chemistry",text))
