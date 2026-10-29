@@ -53,7 +53,7 @@ internal object SearchPolicy {
   val queryTerms=terms(question)
   val anchor=subjectAnchor(question) ?: definitionAnchor(question,queryTerms)
   if(anchor!=null) return listOf("title:$anchor", "body:$anchor")
-  val focus=queryTerms.filter { it !in setOf("happened", "happen", "won", "winner", "result", "outcome") }.take(8)
+  val focus=queryTerms.filter { it !in setOf("happened", "happen", "won", "winner", "result", "outcome", "different", "difference", "differences", "between", "versus", "vs", "comparison") }.take(8)
   if(focus.isEmpty()) return emptyList()
   val exactTitle=focus.joinToString(" AND ") { "title:$it" }
   val exact=focus.joinToString(" AND ") { "\"$it\"" }
@@ -137,6 +137,7 @@ internal object SearchPolicy {
 
  private val genericDefinitionHeads=setOf("capital", "population", "president", "founder", "history", "location", "date", "year", "name", "cause")
  fun definitionAnchor(question: String, terms: List<String>): String? {
+  if(isComparison(question)) return null
   if(!Regex("(?i)^\\s*(what is|what are|define)\\b").containsMatchIn(question)) return null
   val first=terms.firstOrNull() ?: return null
   // "capital of France" needs both terms, unlike "what is an ecosystem?".

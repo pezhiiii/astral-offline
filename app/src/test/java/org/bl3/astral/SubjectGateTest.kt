@@ -4,6 +4,13 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class SubjectGateTest {
+ @Test fun differenceQuestionUsesSubjectsInsteadOfDefinitionAnchor() {
+  val q="What is the difference between weather and climate? Cite the sources."
+  assertNull(SearchPolicy.definitionAnchor(q,SearchPolicy.terms(q)))
+  assertEquals("title:weather AND title:climate",SearchPolicy.candidateQueries(q).first())
+  assertEquals("Weather changes daily, whereas climate describes long-term patterns.",SearchPolicy.comparisonQuote(q,"Weather changes daily, whereas climate describes long-term patterns."))
+ }
+
  @Test fun rejectsThirdPartyNucleusContrast() {
   assertNull(SearchPolicy.comparisonQuote("How are plant cells different from animal cells?", "Bacteria and archaea lack a membrane-bound nucleus; animal and plant cells have nuclei and other organelles."))
  }
