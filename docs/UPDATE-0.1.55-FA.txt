@@ -1,0 +1,1 @@
+0.1.55: Handle structured headers in older passages flattened by Library.addText. No re-import required. Added regression through whitespace flattening. Python analogue passed; Kotlin tests and APK build not run locally. Build using Actions; update without uninstalling. Comparison remains extractive, with no model execution.

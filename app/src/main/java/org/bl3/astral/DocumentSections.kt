@@ -6,7 +6,13 @@ internal object DocumentSections {
  private val header=Regex("(?m)^ARTICLE: ([^\\r\\n]{1,180})\\r?\\nSOURCE: (https?://[^\\s]+)")
  /** Also clean previously imported passages without requiring re-import. Only
   * paired, structured headers are removed; ordinary prose is preserved. */
- fun quotationBody(text: String): String = header.replace(text, "").trim()
+ fun quotationBody(text: String): String {
+  val cleaned=header.replace(text, "").trim()
+  // Older imports flatten all whitespace when storing passage chunks.
+  // Match only a complete ARTICLE + SOURCE pair at the passage start.
+  return Regex("^ARTICLE: [^\\r\\n]{1,180}?\\s+SOURCE: https?://[^\\s]+\\s+")
+   .replaceFirst(cleaned, "").trim()
+ }
  fun split(filename: String, text: String): List<Section> {
   val matches=header.findAll(text).toList()
   if(matches.isEmpty()) return listOf(Section(filename,text))

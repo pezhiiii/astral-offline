@@ -8,6 +8,9 @@ class DocumentSectionsTest {
   val sentence="Weather changes daily, whereas climate describes weather over decades."
   val old="ARTICLE: Weather and climate\nSOURCE: https://example.org/weather\n\n$sentence"
   assertEquals(sentence,DocumentSections.quotationBody(old))
+  val stored=old.split(Regex("\\s+")).joinToString(" ")
+  assertEquals(sentence,DocumentSections.quotationBody(stored))
+  assertEquals(sentence,SearchPolicy.comparisonQuote("What is the difference between weather and climate?",stored))
   assertEquals(sentence,SearchPolicy.comparisonQuote("What is the difference between weather and climate?",old))
  }
  @Test fun ordinaryMetadataWordsRemainProse() {
