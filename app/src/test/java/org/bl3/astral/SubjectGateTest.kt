@@ -4,6 +4,12 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class SubjectGateTest {
+ @Test fun rejectsWeatherMentionWithoutTwoComparisonSides() {
+  val q="What is the difference between weather and climate? Cite the sources."
+  assertNull(SearchPolicy.comparisonQuote(q,"Climate change-induced extreme weather poses challenges, while inherent uncertainty remains."))
+  assertNull(SearchPolicy.comparisonQuote(q,"Currents produce a climate system with different climate regions and weather phenomena."))
+ }
+
  @Test fun differenceQuestionUsesSubjectsInsteadOfDefinitionAnchor() {
   val q="What is the difference between weather and climate? Cite the sources."
   assertNull(SearchPolicy.definitionAnchor(q,SearchPolicy.terms(q)))

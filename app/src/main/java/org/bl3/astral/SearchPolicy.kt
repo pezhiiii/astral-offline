@@ -111,23 +111,20 @@ internal object SearchPolicy {
   * third subject. Still lexical: no semantic correctness guarantee. */
  private fun comparisonContrast(subjects: List<String>, sentence: String): Boolean {
   if(Regex("(?i)\\b(same|similar|similarly|both|shared)\\b").containsMatchIn(sentence)) return false
-  val marker=Regex("(?i)\\b(unlike|whereas|while|differ|differs|different|difference|differences|lack|lacks|instead)\\b").find(sentence) ?: return false
-  val topicWords=subjects.flatMap { term ->
-   val base=if(term.endsWith("s") && !term.endsWith("ss") && term.length>3) term.dropLast(1) else term
-   listOf(base,base+"s")
-  }.toSet()
-  val before=tokens(sentence.substring(0,marker.range.first))
-  if(before.any { it in topicWords }) return true
-  // "Unlike animals, many plant cells ..." starts with the comparison.
-  if(marker.value.equals("unlike",true)) {
-   val after=sentence.substring(marker.range.last+1).substringBefore(',')
-   return tokens(after).any { it in topicWords }
+  fun base(term: String)=if(term.endsWith("s") && !term.endsWith("ss") && term.length>3) term.dropLast(1) else term
+  val wanted=subjects.map { base(it) }.toSet()
+  fun topics(text: String)=tokens(text).map { base(it) }.toSet().intersect(wanted)
+  fun separated(left: String,right: String): Boolean {
+   val l=topics(left);val r=topics(right)
+   // Shared subject words (e.g. cells) cannot establish the two sides.
+   return (l-r).isNotEmpty() && (r-l).isNotEmpty()
   }
-  if(marker.value.equals("while",true)) {
-   val clause=sentence.substring(marker.range.last+1).substringBefore(',')
-   return tokens(clause).any { it in topicWords }
-  }
-  return false
+  val unlike=Regex("(?i)^\\s*unlike\\s+([^,]+),(.+)$").find(sentence)
+  if(unlike!=null) return separated(unlike.groupValues[1],unlike.groupValues[2])
+  val leadingWhile=Regex("(?i)^\\s*while\\s+([^,]+),(.+)$").find(sentence)
+  if(leadingWhile!=null) return separated(leadingWhile.groupValues[1],leadingWhile.groupValues[2])
+  val divider=Regex("(?i)\\b(whereas|while|differs?\\s+from|different\\s+from)\\b").find(sentence) ?: return false
+  return separated(sentence.substring(0,divider.range.first),sentence.substring(divider.range.last+1))
  }
 
  fun subjectAnchor(question: String): String? {
