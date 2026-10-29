@@ -256,10 +256,54 @@ class MainActivity: Activity() {
   }
  }
  private fun deviceInfo() {
-  val am=getSystemService(ACTIVITY_SERVICE) as android.app.ActivityManager
-  val mem=android.app.ActivityManager.MemoryInfo();am.getMemoryInfo(mem)
-  val text="${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}\nAndroid ${android.os.Build.VERSION.RELEASE}\nPhysical RAM: ${mem.totalMem/1_000_000_000.0} GB\nFree storage: ${StatFs(filesDir.path).availableBytes/1_000_000_000.0} GB\nCurrent process PSS: ${android.os.Debug.getPss()} KiB (snapshot, not peak)\nActive pack bytes: ${library.packFile().length()}\nModel bytes: ${model.length()}\nNo INTERNET permission declared.\nSpeed, peak RAM, corpus coverage and bounty quality are NOT validated."
-  AlertDialog.Builder(this).setTitle("Device & evidence").setMessage(text).setPositiveButton("OK",null).show()
+  val dialog=AlertDialog.Builder(this).setTitle("Device & evidence")
+   .setMessage("Measuring local file sizes…").setPositiveButton("OK",null).show()
+  worker.execute {
+   val report=runCatching {
+    val am=getSystemService(ACTIVITY_SERVICE) as android.app.ActivityManager
+    val mem=android.app.ActivityManager.MemoryInfo();am.getMemoryInfo(mem)
+    // Logical file sizes, including databases, model, pack and caches; no links followed.
+    fun bytes(root: File): Long = if(!root.exists()) 0L else root.walkTopDown()
+     .onEnter { !java.nio.file.Files.isSymbolicLink(it.toPath()) }.filter { it.isFile && !java.nio.file.Files.isSymbolicLink(it.toPath()) }
+     .sumOf { it.length() }
+    val apkPaths=(listOf(applicationInfo.sourceDir)+(applicationInfo.splitSourceDirs?.toList() ?: emptyList())).distinct()
+    val apkBytes=apkPaths.sumOf { File(it).length() }
+    val privateBytes=bytes(File(applicationInfo.dataDir))
+    val externalBytes=getExternalFilesDirs(null).filterNotNull().sumOf { bytes(it) }+
+     externalCacheDirs.filterNotNull().sumOf { bytes(it) }
+    val nativeBytes=bytes(File(applicationInfo.nativeLibraryDir))
+    val total=apkBytes+privateBytes+externalBytes+nativeBytes
+    val permissions=packageManager.getPackageInfo(packageName,android.content.pm.PackageManager.GET_PERMISSIONS).requestedPermissions ?: emptyArray<String>()
+    """Astral ${packageManager.getPackageInfo(packageName,0).versionName}
+${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}
+Android ${android.os.Build.VERSION.RELEASE}; ABI ${android.os.Build.SUPPORTED_ABIS.joinToString()}
+Physical RAM: ${mem.totalMem} bytes
+Current process PSS: ${android.os.Debug.getPss()} KiB (snapshot, not peak)
+APK bytes: $apkBytes
+Private data/cache bytes: $privateBytes
+External app data/cache bytes: $externalBytes
+Extracted native library bytes: $nativeBytes
+Total measured logical bytes: $total
+Model bytes: ${model.length()}
+Active pack bytes: ${library.packFile().length()}
+Free storage bytes: ${StatFs(filesDir.path).availableBytes}
+INTERNET permission: ${permissions.contains("android.permission.INTERNET")}
+CPU threads selected: $cpuThreads
+
+Sizes are logical, not allocated disk blocks. Shared downloads outside app directories and OS/compiler storage are excluded. Files may change during measurement. Keep separate download copies in the submission storage inventory.
+RAM is one process snapshot, not peak or total system usage. GrapheneOS compatibility and research quality require separate tests."""
+   }.getOrElse { "Measurement failed: ${it.message}" }
+   ui {
+    if(dialog.isShowing) {
+     dialog.setMessage(report)
+     dialog.setButton(AlertDialog.BUTTON_NEUTRAL,"Copy report") { _,_ ->
+      val clipboard=getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
+      clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Astral device evidence",report))
+      Toast.makeText(this,"Report copied",Toast.LENGTH_SHORT).show()
+     }
+    }
+   }
+  }
  }
  override fun onDestroy() { destroyed=true;showingProgress=false;progressHandler.removeCallbacks(progressTick);runCatching { Engine.cancel() };worker.shutdown();super.onDestroy() }
 }

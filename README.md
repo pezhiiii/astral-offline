@@ -33,7 +33,7 @@ The workflow's result for the latest revision has not been checked here. A succe
 1. Transfer a compatible instruct GGUF and a plain UTF-8 document or compatible FTS4 knowledge pack to the phone. Astral does not bundle these assets.
 2. Import the model and sources using the buttons in the app. The pack is optional if you have imported text.
 3. For an offline demonstration, enable airplane mode and verify Wi-Fi is also disabled. Ask a question covered by the local sources.
-4. Use **Quick source lookup** for retrieval only, or **Generate answer with model** for a locally generated answer. Inspect the evidence and **View source passages**. Opening a web link requires connectivity.
+4. Use **Quick source lookup** for retrieval only, or **Research offline** for a locally generated answer. Inspect the evidence and **View source passages**. Opening a web link requires connectivity.
 
 ## Limits
 
@@ -46,3 +46,7 @@ The workflow's result for the latest revision has not been checked here. A succe
 ## Attribution
 
 Astral source is MIT licensed. The build fetches llama.cpp at commit `6b9ba4f2e8c1436511956f0b3c309e2c9e642071`; its license is maintained upstream. Imported models and datasets retain their own licenses. Record exact model and dataset filenames, sources, revisions, licenses, checksums, and installed sizes before distributing or making claims about them.
+
+## Submission evidence
+
+See [submission readiness](docs/SUBMISSION_READINESS.md) and the [evaluation worksheet](docs/EVALUATION.csv). Version 0.1.59 adds a copyable device/storage report; it does not establish peak RAM or research quality.
