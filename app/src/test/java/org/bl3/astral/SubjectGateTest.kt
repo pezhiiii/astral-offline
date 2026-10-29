@@ -7,6 +7,9 @@ class SubjectGateTest {
  @Test fun rejectsMusicForCellComparison() {
   assertFalse(SearchPolicy.acceptsSubject("How are plant cells different from animal cells? Cite the sources.", "(A) Senile Animal", "An album by the Melvins."))
  }
+ @Test fun rejectsCellHistoryForComparison() {
+  assertFalse(SearchPolicy.acceptsSubject("How are plant cells different from animal cells?", "Cell history", "Cells are functional units. Plant scientist Schleiden and animal scientist Schwann studied cells in plant and animal tissue, respectively."))
+ }
  @Test fun acceptsComparisonWithBothSubjects() {
   assertTrue(SearchPolicy.acceptsSubject("How are plant cells different from animal cells? Cite the sources.", "Cells", "Plant cells have cell walls. Animal cells lack cell walls."))
  }

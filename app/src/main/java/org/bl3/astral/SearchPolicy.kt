@@ -64,6 +64,13 @@ internal object SearchPolicy {
  /** Lexical subject gate, not a claim verifier. Reject incidental mentions and
   * require comparison subjects to occur together in the candidate passage. */
  fun acceptsSubject(question: String, title: String, body: String): Boolean {
+  // A comparison needs contrast language in the passage, not merely both names
+  // somewhere in a historical or bibliographic passage. This is a lexical
+  // heuristic and can miss valid comparisons written without these markers.
+  if(Regex("(?i)\\b(compare|comparison|different|difference|differences|versus|vs)\\b").containsMatchIn(question)) {
+   val contrast=Regex("(?i)\\b(whereas|while|unlike|differ|differs|different|difference|differences|lack|lacks|instead)\\b")
+   if(!contrast.containsMatchIn(body)) return false
+  }
   val titleWords=tokens(title.substringBefore(" — "))
   val bodyWords=tokens(body)
   val anchor=subjectAnchor(question) ?: definitionAnchor(question,terms(question))
