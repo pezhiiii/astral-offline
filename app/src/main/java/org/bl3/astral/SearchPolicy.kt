@@ -47,6 +47,20 @@ internal object SearchPolicy {
   return subject.all { it in available }
  }
 
+ /** Query the actual subject before broad term fallbacks. Keep intent words
+  * in terms() for excerpt selection, but do not require them in documents. */
+ fun candidateQueries(question: String): List<String> {
+  val queryTerms=terms(question)
+  val anchor=subjectAnchor(question) ?: definitionAnchor(question,queryTerms)
+  if(anchor!=null) return listOf("title:$anchor", "body:$anchor")
+  val focus=queryTerms.filter { it !in setOf("happened", "happen", "won", "winner", "result", "outcome") }.take(8)
+  if(focus.isEmpty()) return emptyList()
+  val exactTitle=focus.joinToString(" AND ") { "title:$it" }
+  val exact=focus.joinToString(" AND ") { "\"$it\"" }
+  val pairs=focus.take(4).flatMapIndexed { i,a -> focus.take(4).drop(i+1).map { b -> "\"$a\" AND \"$b\"" } }
+  return (listOf(exactTitle,exact)+pairs+focus.flatMap { listOf("title:$it","body:$it") }).distinct()
+ }
+
  fun subjectAnchor(question: String): String? {
   val match=Regex("(?i)^\\s*who\\s+(?:is|was|were|are)\\s+([^?]+)").find(question) ?: return null
   return terms(match.groupValues[1]).firstOrNull()

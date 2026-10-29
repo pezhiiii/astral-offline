@@ -70,10 +70,7 @@ class Library(private val context: Context): SQLiteOpenHelper(context, "knowledg
   // Focus definition questions on their subject; generic words like "living" do not
   // justify sending unrelated documents to the language model.
   val anchor=SearchPolicy.subjectAnchor(question) ?: SearchPolicy.definitionAnchor(question,terms)
-  val focus=terms.take(8)
-  val pairs=focus.take(4).flatMapIndexed { i,a -> focus.take(4).drop(i+1).map { b -> "\"$a\" AND \"$b\"" } }
-  val queries=if(anchor!=null) listOf("title:$anchor", "body:$anchor") else
-   (listOf(focus.joinToString(" AND ") { "\"$it\"" }) + pairs + focus.flatMap { listOf("title:$it", "body:$it") }).distinct()
+  val queries=SearchPolicy.candidateQueries(question)
   val databases=mutableListOf(readableDatabase)
   val external=if(pack.exists()) SQLiteDatabase.openDatabase(pack.path,null,SQLiteDatabase.OPEN_READONLY) else null
   if(external!=null) databases.add(external)

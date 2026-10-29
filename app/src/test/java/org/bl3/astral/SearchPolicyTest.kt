@@ -4,6 +4,14 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class SearchPolicyTest {
+ @Test fun eventIntentDoesNotObscureSubjectQuery() {
+  val queries=SearchPolicy.candidateQueries("What happened in the 1903 German football championship? Cite the source.")
+  assertEquals("title:1903 AND title:german AND title:football AND title:championship",queries.first())
+  assertFalse(queries.any { it.contains("happened") })
+  assertEquals(listOf("title:aristotle","body:aristotle"),SearchPolicy.candidateQueries("Who was Aristotle?"))
+  assertTrue(SearchPolicy.candidateQueries("cite sources").isEmpty())
+ }
+
  @Test fun missingDatedEventCannotFallBackToOceanography() {
   val q="What happened in the 1903 German football championship? Cite the source."
   assertFalse(SearchPolicy.acceptsDatedSubject(q,"Marine biology","A German institute was founded in 1903."))
