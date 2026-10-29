@@ -46,6 +46,15 @@ class Library(private val context: Context): SQLiteOpenHelper(context, "knowledg
   } finally { db.endTransaction() }
   return count
  }
+ fun packOverview(): String {
+  if(!pack.exists()) return "No knowledge pack installed."
+  return SQLiteDatabase.openDatabase(pack.path,null,SQLiteDatabase.OPEN_READONLY).use { db ->
+   val count=db.rawQuery("SELECT count(*) FROM passages",null).use { c -> c.moveToFirst();c.getLong(0) }
+   val titles=mutableListOf<String>()
+   db.rawQuery("SELECT DISTINCT title FROM passages LIMIT 8",null).use { c -> while(c.moveToNext()) titles.add(c.getString(0)) }
+   "Active knowledge pack: $count passages; ${pack.length()} bytes\nSample titles (not a full inventory):\n"+titles.joinToString("\n")
+  }
+ }
  fun sourceSummary(): List<Pair<String,Long>> {
   val result=mutableListOf<Pair<String,Long>>()
   readableDatabase.rawQuery("SELECT title, count(*) FROM passages GROUP BY title ORDER BY title LIMIT 201",null).use { c ->

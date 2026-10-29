@@ -102,6 +102,14 @@ class MainActivity: Activity() {
   super.onActivityResult(requestCode,resultCode,data)
   if(resultCode!=RESULT_OK) return
   val uri=data?.data ?: return
+  if(requestCode==12 && library.packFile().exists()) {
+   AlertDialog.Builder(this).setTitle("Replace active knowledge pack?")
+    .setMessage("This replaces the current pack; it does not add to it. Keep the old source file if you may need to restore it. Personal text documents are kept.")
+    .setNegativeButton("Cancel",null)
+    .setPositiveButton("Replace") { _,_ -> importSelected(requestCode,uri) }.show()
+  } else importSelected(requestCode,uri)
+ }
+ private fun importSelected(requestCode: Int, uri: android.net.Uri) {
   busy(true);status.text="Importing locally…"
   worker.execute {
    try {
@@ -226,16 +234,17 @@ class MainActivity: Activity() {
   worker.execute {
    try {
     val sources=library.sourceSummary()
+    val packDetails=library.packOverview()
     val lines=sources.take(200).joinToString("\n\n") { (title,count) -> "$title\n$count passages" }
     val text=if(sources.isEmpty()) "No personal text documents have been imported." else lines+(if(sources.size>200) "\n\nShowing the first 200 titles." else "")
-    ui { AlertDialog.Builder(this).setTitle("Personal library").setMessage(text+"\n\nKnowledge pack is separate and is not listed here.").setPositiveButton("Close",null).show() }
+    ui { AlertDialog.Builder(this).setTitle("Personal library").setMessage(text+"\n\n"+packDetails).setPositiveButton("Close",null).show() }
    } catch(e: Exception) { ui { output.text="Library overview failed: ${e.message}" } }
   }
  }
  private fun deviceInfo() {
   val am=getSystemService(ACTIVITY_SERVICE) as android.app.ActivityManager
   val mem=android.app.ActivityManager.MemoryInfo();am.getMemoryInfo(mem)
-  val text="${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}\nAndroid ${android.os.Build.VERSION.RELEASE}\nPhysical RAM: ${mem.totalMem/1_000_000_000.0} GB\nFree storage: ${StatFs(filesDir.path).availableBytes/1_000_000_000.0} GB\nModel bytes: ${model.length()}\nNo INTERNET permission declared.\nSpeed, peak RAM, corpus coverage and bounty quality are NOT validated."
+  val text="${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}\nAndroid ${android.os.Build.VERSION.RELEASE}\nPhysical RAM: ${mem.totalMem/1_000_000_000.0} GB\nFree storage: ${StatFs(filesDir.path).availableBytes/1_000_000_000.0} GB\nCurrent process PSS: ${android.os.Debug.getPss()} KiB (snapshot, not peak)\nActive pack bytes: ${library.packFile().length()}\nModel bytes: ${model.length()}\nNo INTERNET permission declared.\nSpeed, peak RAM, corpus coverage and bounty quality are NOT validated."
   AlertDialog.Builder(this).setTitle("Device & evidence").setMessage(text).setPositiveButton("OK",null).show()
  }
  override fun onDestroy() { destroyed=true;showingProgress=false;progressHandler.removeCallbacks(progressTick);runCatching { Engine.cancel() };worker.shutdown();super.onDestroy() }
