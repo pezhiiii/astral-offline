@@ -4,6 +4,16 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class SearchPolicyTest {
+ @Test fun awardWordingRetainsWinnerInEventExcerpt() {
+  val q="What happened in the 1903 German football championship?"
+  val text="The 1903 German football championship was the first tournament. "+
+   (1..95).joinToString(" ") { "background$it" }+
+   " VfB Leipzig became the first club to be awarded the Viktoria, the trophy for the German champions. "+
+   (1..40).joinToString(" ") { "ending$it" }
+  assertTrue(SearchPolicy.eventExcerpt(text,SearchPolicy.terms(q),55).contains("VfB Leipzig became the first club to be awarded"))
+  assertEquals(12,SearchPolicy.eventRank(q,"1903 German football championship",text))
+ }
+
  @Test fun eventIntentDoesNotObscureSubjectQuery() {
   val queries=SearchPolicy.candidateQueries("What happened in the 1903 German football championship? Cite the source.")
   assertEquals("title:1903 AND title:german AND title:football AND title:championship",queries.first())
