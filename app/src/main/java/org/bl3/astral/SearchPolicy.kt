@@ -113,11 +113,13 @@ internal object SearchPolicy {
   if(Regex("(?i)\\b(same|similar|similarly|both|shared)\\b").containsMatchIn(sentence)) return false
   fun base(term: String)=if(term.endsWith("s") && !term.endsWith("ss") && term.length>3) term.dropLast(1) else term
   val wanted=subjects.map { base(it) }.toSet()
-  fun topics(text: String)=tokens(text).map { base(it) }.toSet().intersect(wanted)
+  fun firstTopic(text: String): String? = word.findAll(text.lowercase(Locale.ROOT))
+   .map { base(it.value) }.firstOrNull { it in wanted }
   fun separated(left: String,right: String): Boolean {
-   val l=topics(left);val r=topics(right)
-   // Shared subject words (e.g. cells) cannot establish the two sides.
-   return (l-r).isNotEmpty() && (r-l).isNotEmpty()
+   val l=firstTopic(left);val r=firstTopic(right)
+   // A topic may naturally be repeated in the other definition. Use the
+   // first topic on each side rather than requiring disjoint vocabularies.
+   return l!=null && r!=null && l!=r
   }
   val unlike=Regex("(?i)^\\s*unlike\\s+([^,]+),(.+)$").find(sentence)
   if(unlike!=null) return separated(unlike.groupValues[1],unlike.groupValues[2])

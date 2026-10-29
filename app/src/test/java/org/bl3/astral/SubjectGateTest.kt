@@ -4,6 +4,12 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class SubjectGateTest {
+ @Test fun acceptsRepeatedTopicInOtherDefinition() {
+  val q="What is the difference between weather and climate? Cite the sources."
+  val source="Weather describes atmospheric conditions over a short time, whereas climate describes patterns and averages of weather over many years."
+  assertEquals(source,SearchPolicy.comparisonQuote(q,source))
+ }
+
  @Test fun rejectsWeatherMentionWithoutTwoComparisonSides() {
   val q="What is the difference between weather and climate? Cite the sources."
   assertNull(SearchPolicy.comparisonQuote(q,"Climate change-induced extreme weather poses challenges, while inherent uncertainty remains."))
