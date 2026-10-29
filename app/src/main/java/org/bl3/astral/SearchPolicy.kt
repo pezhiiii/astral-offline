@@ -61,6 +61,28 @@ internal object SearchPolicy {
   return (listOf(exactTitle,exact)+pairs+focus.flatMap { listOf("title:$it","body:$it") }).distinct()
  }
 
+ /** Lexical subject gate, not a claim verifier. Reject incidental mentions and
+  * require comparison subjects to occur together in the candidate passage. */
+ fun acceptsSubject(question: String, title: String, body: String): Boolean {
+  val titleWords=tokens(title.substringBefore(" — "))
+  val bodyWords=tokens(body)
+  val anchor=subjectAnchor(question) ?: definitionAnchor(question,terms(question))
+  if(anchor!=null) {
+   if(anchor in titleWords) return true
+   val escaped=Regex.escape(anchor)
+   val defining=Regex("(?i)\\b$escaped\\s+(?:is|are|was|were|refers to|means|consists of)\\b")
+   return defining.containsMatchIn(body)
+  }
+  val subject=terms(question.substringBefore('?')).filter {
+   it !in setOf("different", "difference", "differences", "between", "versus", "vs", "happened", "happen", "won", "winner", "result", "outcome", "contributions", "contribution")
+  }
+  if(subject.isEmpty()) return false
+  // Simple inflections: cell/cells, plant/plants. Do not use substring matching.
+  fun forms(term: String)=if(term.endsWith("s") && !term.endsWith("ss") && term.length>3) setOf(term,term.dropLast(1)) else setOf(term,term+"s")
+  val available=titleWords+bodyWords
+  return subject.all { forms(it).any { form -> form in available } }
+ }
+
  fun subjectAnchor(question: String): String? {
   val match=Regex("(?i)^\\s*who\\s+(?:is|was|were|are)\\s+([^?]+)").find(question) ?: return null
   return terms(match.groupValues[1]).firstOrNull()
