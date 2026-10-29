@@ -75,7 +75,7 @@ class MainActivity: Activity() {
    minLines=2;setPadding(22,18,22,18);background=rounded(Color.rgb(28,39,55),24f)
   };root.addView(question,LinearLayout.LayoutParams(-1,-2).apply { setMargins(0,12,0,8) })
   quick=button("Quick source lookup") { quickLookup() };quick.background=rounded(Color.rgb(0,127,137),22f)
-  ask=button("Generate answer with model") { research() }
+  ask=button("Research offline") { research() }
   cpuThreads=getPreferences(MODE_PRIVATE).getInt("cpu_threads",4).let { if(it in listOf(2,4,6)) it else 4 }
   threadsButton=button("CPU threads: $cpuThreads") {
    cpuThreads=when(cpuThreads) { 2 -> 4; 4 -> 6; else -> 2 }
@@ -196,8 +196,8 @@ class MainActivity: Activity() {
     if(hits.isEmpty()) { ui { output.text="No matching evidence found. Import relevant sources or rephrase your question. No answer was generated." };return@execute }
     if(SearchPolicy.isComparison(q)) {
      val quotes=hits.mapIndexedNotNull { i,p -> SearchPolicy.comparisonQuote(q,p.text)?.let { "[${i+1}] "+it } }
-     val quoteText=quotes.joinToString("\n\n")
-     ui { output.text="SOURCE QUOTATIONS — extracted verbatim, not an AI-generated comparison. These passages may cover only part of your question.\n\n$quoteText\n\nLOCAL SOURCES\n"+hits.mapIndexed { i,p -> "[${i+1}] ${p.title}" }.joinToString("\n")+"\n\nElapsed: ${"%.3f".format((System.nanoTime()-started)/1e9)} s" }
+     val quoteText=quotes.distinct().joinToString("\n\n")
+     ui { output.text="PARTIAL COMPARISON — source quotations. The model was not run. These excerpts do not establish a complete comparison.\n\n$quoteText\n\nLOCAL SOURCES\n"+hits.mapIndexed { i,p -> "[${i+1}] ${p.title} (passage ${p.id})" }.joinToString("\n")+"\n\nElapsed: ${"%.3f".format((System.nanoTime()-started)/1e9)} s" }
      return@execute
     }
     val calculated=NumericEvidence.answer(q,hits.map { NumericEvidence.Source(it.text) })
