@@ -141,9 +141,9 @@ internal object SearchPolicy {
   return comparisonTopics(question).mapNotNull { topic ->
    // Recognize bounded domain qualifiers without dropping them from quotations.
    // Do not accept arbitrary narrative prefixes or incidental topic mentions.
-   val domain="(?:classical\\s+)?(?:thermodynamics|kinetic\\s+theory|physics|mechanics|chemistry|biology)"
+   val domain="(?:classical\\s+)?(?:thermodynamics|kinetic\\s+theory|physics|mechanics|chemistry|biology|science|engineering)"
    val qualifier="(?:in\\s+"+domain+"(?:\\s+and\\s+"+domain+")?\\s*,\\s*)?"
-   val defining=Regex("(?i)^\\s*"+qualifier+"(?:the\\s+)?"+Regex.escape(topic)+"\\s+(?:is|are|refers\\s+to|means|can\\s+be\\s+(?:experimentally\\s+)?(?:defined|understood))\\b")
+   val defining=Regex("(?i)^\\s*"+qualifier+"(?:the\\s+)?"+Regex.escape(topic)+"(?:\\s+of\\s+(?:an?|the)\\s+(?:object|body|particle|system))?\\s+(?:is|are|refers\\s+to|means|can\\s+be\\s+(?:experimentally\\s+)?(?:defined|understood))\\b")
    sentences.sortedByDescending { sentence ->
     (if(Regex("(?i)\\b(measure|measures|resistance|inertia)\\b").containsMatchIn(sentence)) 4 else 0) +
     (if(Regex("(?i)\\b(experimentally|defined)\\b").containsMatchIn(sentence)) 2 else 0)

@@ -122,4 +122,13 @@ class SearchPolicyTest {
   val sources=listOf("Heat is a process quantity.",definition,"The SI unit of heat is the joule.","The SI unit of temperature is the kelvin.")
   assertTrue(SearchPolicy.missingComparisonEvidence(q,sources).isEmpty())
  }
+ @Test fun weightDefinitionRecognizesDomainAndObjectQualifier() {
+  val q="Compare mass and weight: what does each measure and what are their SI units?"
+  val definition="In science and engineering, the weight of an object is a quantity associated with the gravitational force exerted on the object by other objects in its environment, although there is some variation and debate as to the exact definition."
+  assertEquals(definition,SearchPolicy.comparisonDefinitions(q,definition)["weight"])
+  assertTrue(SearchPolicy.comparisonDefinitions(q,"The weight of a body is a force.").containsKey("weight"))
+  assertFalse(SearchPolicy.comparisonDefinitions(q,"A report says the weight of an object is a force.").containsKey("weight"))
+  assertFalse(SearchPolicy.comparisonDefinitions(q,"In science and engineering, the weight of an object is important.").containsKey("weight"))
+  assertFalse(SearchPolicy.comparisonDefinitions(q,definition.dropLast(1)).containsKey("weight"))
+ }
 }
