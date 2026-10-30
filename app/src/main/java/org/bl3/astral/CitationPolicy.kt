@@ -42,6 +42,7 @@ internal object CitationPolicy {
   rejectionReason(answer,excerpts.size)?.let { return it }
   if(hasUncitedSentence(answer)) return "Each answer sentence must have an adjacent numeric source reference."
   qualityRejectionReason(question,answer,excerpts)?.let { return it }
+  if(Regex("(?i)\\bunits?\\b").containsMatchIn(question)) unitCitationRejection(answer,excerpts)?.let { return it }
   val plain=answer.replace(Regex("\\[\\d+\\]"),"")
   val evidence=excerpts.joinToString(" ")
   val number=Regex("(?<![\\p{L}\\p{N}])\\d+(?:[.,]\\d+)*%?")
@@ -61,6 +62,19 @@ internal object CitationPolicy {
   "ampere" to Regex("(?i:\\bamperes?\\b)|\\bA\\b"),
   "joule" to Regex("(?i:\\bjoules?\\b)|\\bJ\\b")
  )
+ /** Lexical support for known unit mentions in each generated line, not entailment. */
+ fun unitCitationRejection(answer: String, excerpts: List<String>): String? {
+  for(line in answer.lines().filter { it.isNotBlank() }) {
+   val ids=Regex("\\[(\\d+)\\]").findAll(line).mapNotNull { it.groupValues[1].toIntOrNull() }.toList()
+   val cited=ids.mapNotNull { excerpts.getOrNull(it-1) }.joinToString(" ")
+   val text=line.replace(Regex("\\[\\d+\\]"),"")
+   for((name,pattern) in unitPatterns) {
+    if(pattern.containsMatchIn(text) && !pattern.containsMatchIn(cited))
+     return "A cited source does not contain the stated unit ($name) on this answer line."
+   }
+  }
+  return null
+ }
  /** Observable output defects only; this is not an entailment checker. */
  fun qualityRejectionReason(question: String, answer: String, excerpts: List<String>): String? {
   if(question.isBlank()) return null
