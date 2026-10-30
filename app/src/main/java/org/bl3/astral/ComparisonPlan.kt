@@ -2,6 +2,21 @@ package org.bl3.astral
 
 /** Narrow decomposition only for two-topic measurement/unit questions. No factual answers. */
 internal object ComparisonPlan {
+ /** Lexical source roles for the current subject; these are not factual validation. */
+ fun citationGuidance(question: String, part: Int, excerpts: List<String>): String {
+  val topic=SearchPolicy.comparisonTopics(question).getOrNull(part) ?: return ""
+  val selected=sourceIndices(question,part,excerpts)
+  val definition=selected.firstOrNull { SearchPolicy.comparisonDefinitions(question,excerpts[it]).containsKey(topic) }
+  val unit=selected.firstOrNull { SearchPolicy.unitExcerpt("SI unit of $topic",excerpts[it])!=null }
+  val roles=listOfNotNull(
+   definition?.let { "Definition evidence for $topic: [${it+1}]." },
+   unit?.let { "SI unit evidence for $topic: [${it+1}]." }
+  ).joinToString(" ")
+  val refs=listOfNotNull(definition,unit).distinct().joinToString(" ") { "[${it+1}]" }
+  return roles+if(definition!=null && unit!=null)
+   " If your sentence combines this definition and unit, end it with $refs. Cite each distinct ID once. Do not use the definition reference alone for the unit."
+   else " Cite only evidence supporting the facts you state."
+ }
  /** Keep original IDs; select a passage with the requested unit or scenario. */
  fun sourceIndices(question: String, part: Int, excerpts: List<String>): List<Int> {
   val topics=SearchPolicy.comparisonTopics(question)
