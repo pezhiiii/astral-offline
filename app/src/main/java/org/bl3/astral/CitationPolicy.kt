@@ -63,6 +63,13 @@ internal object CitationPolicy {
   "joule" to Regex("(?i:\\bjoules?\\b)|\\bJ\\b")
  )
  /** Lexical support for known unit mentions in each generated line, not entailment. */
+ fun missingUnitRejection(answer: String, unitEvidence: String, topic: String): String? {
+  for((name,pattern) in unitPatterns) {
+   if(pattern.containsMatchIn(unitEvidence) && !pattern.containsMatchIn(answer))
+    return "The answer omits the requested unit for $topic ($name)."
+  }
+  return null
+ }
  fun unitCitationRejection(answer: String, excerpts: List<String>): String? {
   for(line in answer.lines().filter { it.isNotBlank() }) {
    val ids=Regex("\\[(\\d+)\\]").findAll(line).mapNotNull { it.groupValues[1].toIntOrNull() }.toList()

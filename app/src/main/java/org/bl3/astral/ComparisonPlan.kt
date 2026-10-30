@@ -43,6 +43,19 @@ internal object ComparisonPlan {
   return selected?.let { listOf(it) } ?: excerpts.indices.toList()
  }
  /** Per-part lexical coverage, not semantic verification. */
+ fun partRejection(question: String, part: Int, answer: String, excerpts: List<String>): String? {
+  val topic=SearchPolicy.comparisonTopics(question).getOrNull(part)
+   ?: return scenarioRejection(question,part,answer)
+  if(!SearchPolicy.tokens(topic).all { it in SearchPolicy.tokens(answer) })
+   return "The answer omits the requested subject: $topic."
+  if(Regex("(?i)\\bunits?\\b").containsMatchIn(question)) {
+   val unitEvidence=sourceIndices(question,part,excerpts).firstNotNullOfOrNull {
+    SearchPolicy.unitExcerpt("SI unit of $topic",excerpts[it])
+   }
+   if(unitEvidence!=null) CitationPolicy.missingUnitRejection(answer,unitEvidence,topic)?.let { return it }
+  }
+  return null
+ }
  fun scenarioRejection(question: String, part: Int, answer: String): String? {
   val topics=SearchPolicy.comparisonTopics(question)
   if(topics.size!=2 || part!=topics.size) return null
