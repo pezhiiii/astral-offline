@@ -34,8 +34,11 @@ class ComparisonPlanTest {
   val q="Compare speed and velocity: what does each measure, what are their SI units, and how does direction distinguish them?"
   val tasks=ComparisonPlan.questions(q)
   assertEquals(3,tasks.size)
-  assertTrue(tasks[2].contains(q))
-  assertEquals(listOf(0,1),ComparisonPlan.sourceIndices(q,2,listOf("Velocity includes direction; speed does not.","Both use metres per second.")))
+  assertTrue(tasks[2].contains("direction"))
+  assertFalse(tasks[2].contains("SI units"))
+  assertFalse(tasks[2].contains("Original question"))
+  assertEquals(listOf(0),ComparisonPlan.sourceIndices(q,2,listOf("Velocity includes direction; speed does not.","Both use metres per second.")))
+  assertEquals(listOf(0,1),ComparisonPlan.sourceIndices(q,2,listOf("No relevant distinction.","Both use metres per second.")))
   assertNotNull(ComparisonPlan.scenarioRejection(q,2,"Speed and velocity use m/s [2]."))
   assertNull(ComparisonPlan.scenarioRejection(q,2,"Velocity includes direction whereas speed does not [1]."))
  }
