@@ -258,9 +258,9 @@ class MainActivity: Activity() {
       val draft=String(Engine.answer(model.path,partSystem,request,if(partQuestions.isEmpty()) 256 else 96,requestedThreads,modelHits.size),Charsets.UTF_8)
       val report=String(Engine.metrics(),Charsets.UTF_8)
       drafts.add(draft)
-      reports.add("PART ${index+1} / ${requests.size}\nQuestion: $request\nSupplied source IDs: $partRefs\n$report")
       val withheld=Regex("\\[(\\d+)\\]").findAll(draft).any { (it.groupValues[1].toIntOrNull()?.minus(1)) !in indices }
       val reason=if(withheld) "The draft cites a source not supplied to this part." else CitationPolicy.evidenceRejectionReason(draft,excerpts,!report.contains("Finish: token limit"),request)
+      reports.add("PART ${index+1} / ${requests.size}\nQuestion: $request\nSupplied source IDs: $partRefs\nValidation: ${reason ?: "passed structural checks; factual support not verified"}\nRAW MODEL DRAFT — diagnostic only, not a verified answer\n--- BEGIN DRAFT ---\n$draft\n--- END DRAFT ---\n$report")
       if(reason!=null && sectionReason==null) sectionReason="Part ${index+1}: $reason"
      }
      val answer=drafts.joinToString("\n")
