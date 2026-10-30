@@ -3,6 +3,7 @@
 #include <atomic>
 #include <chrono>
 #include <cstdio>
+#include "PromptDiagnostics.h"
 #include <unistd.h>
 #include <algorithm>
 #include <codecvt>
@@ -94,6 +95,20 @@ extern "C" JNIEXPORT jbyteArray JNICALL Java_org_bl3_astral_Engine_answer(JNIEnv
    prompt.resize(size+1);size=llama_chat_apply_template(tmpl,messages,2,true,prompt.data(),prompt.size());
    if(size<0) throw std::runtime_error("Chat template failed");
   }
+  if(size<=0 || size>(int)prompt.size()) throw std::runtime_error("Chat template returned invalid prompt size");
+  const std::string formatted(prompt.data(),size);
+  const bool system_present=astral_prompt_contains(formatted,system);
+  const bool question_present=astral_prompt_contains(formatted,user);
+  if(!system_present || !question_present)
+   throw std::runtime_error("Chat template omitted or changed instructions/question; generation not run.");
+  char model_desc[256]={0}, architecture[128]={0}, model_name[256]={0};
+  llama_model_desc(model,model_desc,sizeof(model_desc));
+  llama_model_meta_val_str(model,"general.architecture",architecture,sizeof(architecture));
+  llama_model_meta_val_str(model,"general.name",model_name,sizeof(model_name));
+  const auto diagnostics=std::string("\nModel description: ")+astral_diagnostic_text(model_desc)+
+   "\nModel name: "+astral_diagnostic_text(model_name)+"\nArchitecture: "+astral_diagnostic_text(architecture)+
+   "\nChat template: GGUF default; FNV-1a "+astral_template_id(tmpl)+
+   "\nSampler: greedy\nPrompt content: instructions present; question present (text check only)";
   auto vocab=llama_model_get_vocab(model);
   int nt=llama_tokenize(vocab,prompt.data(),size,nullptr,0,true,true);
   if(nt>=0) throw std::runtime_error("Unexpected tokenizer result");
@@ -161,7 +176,7 @@ extern "C" JNIEXPORT jbyteArray JNICALL Java_org_bl3_astral_Engine_answer(JNIEnv
    thread_count,static_cast<int>(getpid()),run,reused?"reused":"loaded",load_time,format_time,context_time,cp.n_ctx,
    nt,prefix,nt-prefix,evaluation_time,evaluation_time>0?(nt-prefix)/evaluation_time:0,first_token_time,generation_time,generated,
    generation_time>0?generated/generation_time:0,reached_end?"end of answer":"token limit (answer may be incomplete)");
-  { std::lock_guard<std::mutex> progress_lock(progress_mutex); metrics=timing; }
+  { std::lock_guard<std::mutex> progress_lock(progress_mutex); metrics=std::string(timing)+diagnostics; }
   report("Complete");
   auto out=e->NewByteArray(answer.size());
   if(out) e->SetByteArrayRegion(out,0,answer.size(),reinterpret_cast<const jbyte*>(answer.data()));
