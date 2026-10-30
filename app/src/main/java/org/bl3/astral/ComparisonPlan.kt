@@ -11,6 +11,17 @@ internal object ComparisonPlan {
   else null
   return selected?.let { listOf(it) } ?: excerpts.indices.toList()
  }
+ /** Per-part lexical coverage, not semantic verification. */
+ fun scenarioRejection(question: String, part: Int, answer: String): String? {
+  val topics=SearchPolicy.comparisonTopics(question)
+  if(topics.size!=2 || part!=topics.size) return null
+  val missing=SearchPolicy.missingComparisonTopics(question,answer)
+  if(missing.isNotEmpty()) return "The scenario answer omits a requested subject: "+missing.joinToString()
+  val scenario=Regex("(?i)from\\s+(.+?)\\s+to\\s+(?:the\\s+)?([\\p{L}]+)").find(question.substringBefore('?')) ?: return null
+  val places=SearchPolicy.terms(scenario.groupValues[1])+SearchPolicy.terms(scenario.groupValues[2])
+  val words=Regex("[\\p{L}]+").findAll(answer.lowercase()).map { it.value }.toSet()
+  return if(places.any { it !in words }) "The scenario answer omits a requested location." else null
+ }
  fun questions(question: String): List<String> {
   if(!SearchPolicy.isComparison(question)) return emptyList()
   val topics=SearchPolicy.comparisonTopics(question)

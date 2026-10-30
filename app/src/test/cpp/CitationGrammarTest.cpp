@@ -5,7 +5,7 @@ int main() {
   auto g=astral_citation_grammar(n);
   for(int i=1;i<=4;++i)
    assert((g.find("\"["+std::to_string(i)+"]\"")!=std::string::npos)==(i<=n));
-  assert(g.find("{0,31}")!=std::string::npos);
+  assert(g.find("{0,63}")!=std::string::npos);
   assert(g.find("core{1,32}")!=std::string::npos);
   assert(g.find("cite)*")==std::string::npos);
   assert(g.find("root ::= line")!=std::string::npos);

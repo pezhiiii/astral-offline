@@ -25,4 +25,11 @@ class ComparisonPlanTest {
   val result=CitationPolicy.present(draft,listOf("Mass is measured in kg."),extraRejection="Part 2: incomplete")
   assertTrue(result.startsWith("MODEL ANSWER REJECTED — Part 2: incomplete"))
  }
+ @Test fun scenarioMustMentionBothSubjectsAndLocations() {
+  val q="Compare mass and weight: what are their units, and which changes from Earth to the Moon?"
+  assertNotNull(ComparisonPlan.scenarioRejection(q,2,"Mass stays constant from Earth to Moon [1]."))
+  assertNotNull(ComparisonPlan.scenarioRejection(q,2,"Mass stays constant and weight decreases [1]."))
+  assertNull(ComparisonPlan.scenarioRejection(q,2,"From Earth to Moon mass stays constant and weight decreases [1]."))
+  assertNull(ComparisonPlan.scenarioRejection(q,0,"Mass measures inertia [1]."))
+ }
 }
