@@ -51,6 +51,8 @@ internal object SearchPolicy {
   * in terms() for excerpt selection, but do not require them in documents. */
  fun candidateQueries(question: String): List<String> {
   val queryTerms=terms(question)
+  val units=unitTopics(question)
+  if(units.isNotEmpty()) return units.flatMap { listOf("title:$it", "body:$it") }
   val anchor=subjectAnchor(question) ?: definitionAnchor(question,queryTerms)
   if(anchor!=null) return listOf("title:$anchor", "body:$anchor")
   val focus=queryTerms.filter { it !in setOf("happened", "happen", "won", "winner", "result", "outcome", "different", "difference", "differences", "between", "versus", "vs", "comparison") }.take(8)
@@ -83,6 +85,7 @@ internal object SearchPolicy {
  /** Lexical subject gate, not a claim verifier. Reject incidental mentions and
   * require comparison subjects to occur together in the candidate passage. */
  fun acceptsSubject(question: String, title: String, body: String): Boolean {
+  if(unitTopics(question).isNotEmpty()) return unitExcerpt(question,body)!=null
   if(isComparison(question)) return comparisonEvidence(question,body)!=null
   if(explanationTerms(question).isNotEmpty()) return explanationExcerpt(question,body)!=null
   val titleWords=tokens(title.substringBefore(" — "))
@@ -108,7 +111,7 @@ internal object SearchPolicy {
 
  /** Parse only explicit two-topic comparisons; qualifiers stay in the model question. */
  fun comparisonTopics(question: String): List<String> {
-  val head=question.substringBefore(',').substringBefore('?').substringBefore('.')
+  val head=question.substringBefore(':').substringBefore(',').substringBefore('?').substringBefore('.')
   val match=Regex("(?i)^\\s*(?:compare\\s+|(?:what\\s+(?:is|are)\\s+)?(?:the\\s+)?differences?\\s+between\\s+)(.+?)\\s+(?:and|versus|vs)\\s+(.+)$").find(head) ?: return emptyList()
   return match.groupValues.drop(1).map { it.trim().lowercase(Locale.ROOT).removePrefix("the ") }
    .takeIf { it.size==2 && it.distinct().size==2 && it.all { t -> tokens(t).isNotEmpty() && tokens(t).size<=5 } } ?: emptyList()
@@ -212,6 +215,37 @@ internal object SearchPolicy {
   return separated(sentence.substring(0,divider.range.first),sentence.substring(divider.range.last+1))
  }
 
+
+ /** Unit requests use the quantities as subjects, not the generic word SI.
+  * Retain complete source sentences; no inferred unit conversions. */
+ fun unitTopics(question: String): List<String> {
+  val head=question.substringBefore('?').trim()
+  val match=Regex("(?i)^(?:(?:what\\s+(?:is|are)\\s+)?(?:the\\s+)?)?(?:SI\\s+units?|units?\\s+in\\s+SI)\\s+of\\s+(.+)$").find(head) ?: return emptyList()
+  val parts=match.groupValues[1].lowercase(Locale.ROOT).split(Regex("\\s+and\\s+"))
+  return parts.takeIf { it.size in 1..2 && it.all { topic -> Regex("[a-z]+(?: [a-z]+)?").matches(topic) } } ?: emptyList()
+ }
+ fun unitSourceIndices(question: String, bodies: List<String>): List<Int> =
+  unitTopics(question).mapNotNull { topic ->
+   bodies.indexOfFirst { unitExcerpt("SI unit of $topic",it)!=null }.takeIf { it>=0 }
+  }.distinct()
+ fun unitExcerpt(question: String, body: String, maxWords: Int = 90): String? {
+  val topics=unitTopics(question)
+  if(topics.isEmpty()) return null
+  val sentences=DocumentSections.quotationBody(body).split(Regex("(?<=[.!?])\\s+|\\n+"))
+  val selected=sentences.map { it.trim() }.filter { sentence ->
+   val words=tokens(sentence)
+   Regex("[.!?]$").containsMatchIn(sentence) &&
+    topics.any { topic -> tokens(topic).all { it in words } } &&
+    ("unit" in words || "units" in words) &&
+    ("si" in words || "international system" in sentence.lowercase(Locale.ROOT)) &&
+    Regex("(?i)\\b(is|are)\\b").containsMatchIn(sentence)
+  }
+  var used=0
+  return selected.filter { sentence ->
+   val n=sentence.split(Regex("\\s+")).size
+   if(used+n<=maxWords) { used+=n;true } else false
+  }.distinct().joinToString("\n").ifBlank { null }
+ }
  fun subjectAnchor(question: String): String? {
   val match=Regex("(?i)^\\s*who\\s+(?:is|was|were|are)\\s+([^?]+)").find(question) ?: return null
   return terms(match.groupValues[1]).firstOrNull()
@@ -219,7 +253,7 @@ internal object SearchPolicy {
 
  private val genericDefinitionHeads=setOf("capital", "population", "president", "founder", "history", "location", "date", "year", "name", "cause")
  fun definitionAnchor(question: String, terms: List<String>): String? {
-  if(isComparison(question)) return null
+  if(isComparison(question) || unitTopics(question).isNotEmpty()) return null
   if(!Regex("(?i)^\\s*(what is|what are|define)\\b").containsMatchIn(question)) return null
   val first=terms.firstOrNull() ?: return null
   // "capital of France" needs both terms, unlike "what is an ecosystem?".

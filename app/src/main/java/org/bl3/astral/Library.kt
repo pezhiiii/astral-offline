@@ -87,6 +87,9 @@ class Library(private val context: Context): SQLiteOpenHelper(context, "knowledg
    .map { it.first }.distinctBy { it.text }
   val focused=SearchPolicy.focusedTitle(question,ranked.map { it.title })
   val relevant=if(focused==null) ranked else ranked.filter { it.title.substringBefore(" — ").equals(focused,ignoreCase=true) }
+  if(SearchPolicy.unitTopics(question).isNotEmpty()) {
+   return SearchPolicy.unitSourceIndices(question,relevant.map { it.text }).map { relevant[it] }
+  }
   if(SearchPolicy.isComparison(question)) {
    val selected=SearchPolicy.comparisonSourceIndices(question,relevant.map { it.text })
    return selected.map { relevant[it] }
