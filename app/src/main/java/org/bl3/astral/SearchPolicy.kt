@@ -86,7 +86,7 @@ internal object SearchPolicy {
   * require comparison subjects to occur together in the candidate passage. */
  fun acceptsSubject(question: String, title: String, body: String): Boolean {
   if(unitTopics(question).isNotEmpty()) return unitExcerpt(question,body)!=null
-  if(isComparison(question)) return comparisonEvidence(question,body)!=null
+  if(isComparison(question)) return comparisonEvidence(question,body)!=null || comparisonFacets(question,body).isNotEmpty()
   if(explanationTerms(question).isNotEmpty()) return explanationExcerpt(question,body)!=null
   val titleWords=tokens(title.substringBefore(" — "))
   val bodyWords=tokens(body)
@@ -165,11 +165,62 @@ internal object SearchPolicy {
 
  fun comparisonSourceIndices(question: String, bodies: List<String>): List<Int> {
   val direct=bodies.indexOfFirst { comparisonQuote(question,it)!=null }
-  if(direct>=0) return listOf(direct)
   val topics=comparisonTopics(question)
-  if(topics.isEmpty()) return emptyList()
-  val indices=topics.map { topic -> bodies.indexOfFirst { topic in comparisonDefinitions(question,it) } }
-  return if(indices.any { it<0 }) emptyList() else indices.distinct()
+  if(topics.isEmpty()) return if(direct>=0) listOf(direct) else emptyList()
+  val selected=mutableListOf<Int>()
+  if(direct>=0) selected.add(direct)
+  else {
+   val definitions=topics.map { topic -> bodies.indexOfFirst { topic in comparisonDefinitions(question,it) } }
+   if(definitions.any { it<0 }) return emptyList()
+   selected.addAll(definitions.distinct())
+  }
+  val covered=selected.flatMap { comparisonFacets(question,bodies[it]).keys }.toMutableSet()
+  val wanted=bodies.flatMap { comparisonFacets(question,it).keys }.toSet()
+  while(selected.size<4) {
+   val next=bodies.indices.filter { it !in selected }.maxByOrNull { i ->
+    comparisonFacets(question,bodies[i]).keys.count { it !in covered }
+   } ?: break
+   val added=comparisonFacets(question,bodies[next]).keys-covered
+   if(added.isEmpty()) break
+   selected.add(next);covered.addAll(added)
+   if(covered.containsAll(wanted)) break
+  }
+  return selected
+ }
+
+ /** Requested facets are independent: a unit sentence need not define both topics.
+  * These lexical selectors copy source sentences and do not verify entailment. */
+ fun comparisonFacets(question: String, body: String): Map<String,String> {
+  val topics=comparisonTopics(question)
+  if(topics.isEmpty()) return emptyMap()
+  val result=comparisonDefinitions(question,body).mapKeys { "definition:"+it.key }.toMutableMap()
+  if(Regex("(?i)\\bunits?\\b").containsMatchIn(question)) for(topic in topics) {
+   unitExcerpt("SI unit of $topic",body)?.let { result["unit:$topic"]=it }
+  }
+  val scenario=Regex("(?i)from\\s+(.+?)\\s+to\\s+(?:the\\s+)?([\\p{L}]+)").find(question.substringBefore('?'))
+  if(scenario!=null) {
+   val places=terms(scenario.groupValues[1])+terms(scenario.groupValues[2])
+   DocumentSections.quotationBody(body).split(Regex("(?<=[.!?])\\s+|\\n+"))
+    .map { it.trim() }.firstOrNull { sentence ->
+     val words=tokens(sentence)
+     places.isNotEmpty() && places.all { it in words } &&
+      topics.all { topic -> tokens(topic).all { term -> term in words ||
+       (term=="weight" && words.any { it in setOf("weigh","weighs","weighed") }) } } &&
+      Regex("[.!?]$").containsMatchIn(sentence)
+    }?.let { result["scenario"]=it }
+  }
+  return result
+ }
+
+ fun comparisonModelContext(question: String, body: String, maxWords: Int = 150): String? {
+  val facets=comparisonFacets(question,body).values.toList()
+  if(facets.isEmpty()) return comparisonContext(question,body,maxWords)
+  val sentences=facets+(comparisonEvidence(question,body)?.split('\n') ?: emptyList())
+  var used=0
+  return sentences.distinct().filter { sentence ->
+   val n=sentence.split(Regex("\\s+")).size
+   if(used+n<=maxWords) { used+=n;true } else false
+  }.joinToString("\n").ifBlank { null }
  }
 
  /** Return source sentences verbatim; no synthesized comparison claims.
