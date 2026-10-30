@@ -68,6 +68,8 @@ internal object CitationPolicy {
    val ids=Regex("\\[(\\d+)\\]").findAll(line).mapNotNull { it.groupValues[1].toIntOrNull() }.toList()
    val cited=ids.mapNotNull { excerpts.getOrNull(it-1) }.joinToString(" ")
    val text=line.replace(Regex("\\[\\d+\\]"),"")
+   if(Regex("\\b[A-Za-z]+\\s*/\\s*[A-Za-z]+\\s*(?:\\^\\s*)?[-−⁻]\\s*[0-9¹²³]+").containsMatchIn(text))
+    return "The answer uses ambiguous slash/negative-exponent unit notation; use a full unit name."
    // Conservative lexical support for a common squared-time compound unit.
    // No dimensional correctness or quantity association is inferred.
    val squared=Regex("(?i)(?:\\bm\\s*/\\s*s\\s*(?:\\^\\s*2|2|²)|\\b(?:metres?|meters?) per second squared\\b)")

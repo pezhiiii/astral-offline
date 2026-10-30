@@ -75,4 +75,11 @@ class CitationPolicyTest {
   }
   assertNull(CitationPolicy.unitCitationRejection("Speed uses m/s [1].",listOf("Speed uses meters per second (m/s).")))
  }
+ @Test fun rejectsObservedSlashNegativeExponentNotation() {
+  val evidence=listOf("Velocity uses metres per second (m/s or m·s−1).")
+  for(unit in listOf("m/s-1","m/s−1","m / s^-1","m/s⁻¹"))
+   assertNotNull(CitationPolicy.unitCitationRejection("Velocity uses $unit [1].",evidence))
+  for(unit in listOf("metres per second","m/s","m·s−1"))
+   assertNull(CitationPolicy.unitCitationRejection("Velocity uses $unit [1].",evidence))
+ }
 }
