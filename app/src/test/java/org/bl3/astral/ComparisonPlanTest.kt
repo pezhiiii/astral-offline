@@ -42,4 +42,15 @@ class ComparisonPlanTest {
   assertNotNull(ComparisonPlan.scenarioRejection(q,2,"Speed and velocity use m/s [2]."))
   assertNull(ComparisonPlan.scenarioRejection(q,2,"Velocity includes direction whereas speed does not [1]."))
  }
+ @Test fun meaningAndUnitComparisonHasThreeFocusedParts() {
+  val q="Compare heat and temperature: what does each mean, what are their SI units, and how do they differ? Cite the sources."
+  val tasks=ComparisonPlan.questions(q)
+  assertEquals(3,tasks.size)
+  assertTrue(tasks[0].startsWith("What does heat mean"))
+  assertTrue(tasks[1].startsWith("What does temperature mean"))
+  assertTrue(tasks[2].contains("How do heat and temperature differ"))
+  val excerpts=listOf("Heat is energy in transfer.","Temperature is a state variable. The SI unit of temperature is the kelvin.","The SI unit of heat is the joule.")
+  assertEquals(listOf(0,2),ComparisonPlan.sourceIndices(q,0,excerpts))
+  assertEquals(listOf(1),ComparisonPlan.sourceIndices(q,1,excerpts))
+ }
 }

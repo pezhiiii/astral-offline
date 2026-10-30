@@ -13,6 +13,14 @@ internal object ComparisonPlan {
    }.minByOrNull { excerpts[it].length }
    return focused?.let { listOf(it) } ?: excerpts.indices.toList()
   }
+  if(part in topics.indices) {
+   val topic=topics[part]
+   val unit=excerpts.indices.firstOrNull { SearchPolicy.unitExcerpt("SI unit of $topic",excerpts[it])!=null }
+   val definition=if(unit!=null && SearchPolicy.comparisonDefinitions(question,excerpts[unit]).containsKey(topic)) unit
+    else excerpts.indices.firstOrNull { SearchPolicy.comparisonDefinitions(question,excerpts[it]).containsKey(topic) }
+   val selected=listOfNotNull(definition,unit).distinct()
+   if(selected.isNotEmpty()) return selected
+  }
   val selected=if(part in topics.indices && Regex("(?i)\\bunits?\\b").containsMatchIn(question))
    excerpts.indices.firstOrNull { SearchPolicy.unitExcerpt("SI unit of ${topics[part]}",excerpts[it])!=null }
   else if(part==topics.size) excerpts.indices.firstOrNull { "scenario" in SearchPolicy.comparisonFacets(question,excerpts[it]) }
@@ -39,13 +47,15 @@ internal object ComparisonPlan {
   if(topics.size!=2 || !Regex("(?i)\\b(measures?|units?)\\b").containsMatchIn(question)) return emptyList()
   val units=Regex("(?i)\\bunits?\\b").containsMatchIn(question)
   val tasks=topics.map { topic ->
-   "What does $topic measure"+(if(units) ", and what is its SI unit" else "")+"? Answer only this part in one complete sentence, using the supplied sources and citations."
+   (if(Regex("(?i)\\b(means?|define|definition)\\b").containsMatchIn(question)) "What does $topic mean" else "What does $topic measure")+(if(units) ", and what is its SI unit" else "")+"? Answer only this part in one complete sentence, using the supplied sources and citations."
   }.toMutableList()
   val scenario=Regex("(?i)from\\s+(.+?)\\s+to\\s+(?:the\\s+)?([\\p{L}]+)").find(question.substringBefore('?'))
   if(scenario!=null) tasks.add("What happens to ${topics[0]} and ${topics[1]} when moving from ${scenario.groupValues[1]} to ${scenario.groupValues[2]}? Name both locations and explain the changes in one complete sentence, using the supplied sources and citations.")
   if(scenario==null) {
    if(Regex("(?i)\\bdirection\\b").containsMatchIn(question))
     tasks.add("How does direction distinguish ${topics[0]} and ${topics[1]}? Name both subjects and explain only the direction distinction in one short sentence with citations.")
+   else if(Regex("(?i)\\b(differ|difference|differences|distinguish)\\b").containsMatchIn(question))
+    tasks.add("How do ${topics[0]} and ${topics[1]} differ? Name both subjects and explain only their defining distinction in one short sentence with citations. Do not repeat their units.")
    else return emptyList() // Preserve the original question when its remaining requests are not understood.
   }
   return tasks
