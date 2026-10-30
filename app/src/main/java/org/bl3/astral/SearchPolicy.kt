@@ -192,8 +192,8 @@ internal object SearchPolicy {
   if(direct>=0) selected.add(direct)
   else {
    val definitions=topics.map { topic -> bodies.indexOfFirst { topic in comparisonDefinitions(question,it) } }
-   if(definitions.any { it<0 }) return emptyList()
-   selected.addAll(definitions.distinct())
+   // Retrieval retains partial evidence; missing facets are reported before synthesis.
+   selected.addAll(definitions.filter { it>=0 }.distinct())
   }
   val covered=selected.flatMap { comparisonFacets(question,bodies[it]).keys }.toMutableSet()
   val wanted=bodies.flatMap { comparisonFacets(question,it).keys }.toSet()

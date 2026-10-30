@@ -89,4 +89,19 @@ class SearchPolicyTest {
   assertTrue(SearchPolicy.missingComparisonEvidence(q,partial+listOf("Temperature is a thermodynamic state property.","The SI unit of temperature is the kelvin (K).")).isEmpty())
   assertTrue(SearchPolicy.candidateQueries(q).first().contains("unit OR units"))
  }
+ @Test fun partialComparisonSourcesSurviveMissingDefinition() {
+  val q="Compare heat and temperature: what does each mean, what are their SI units, and how do they differ?"
+  val bodies=listOf("Heat is a process quantity.","Temperature is important in all fields of science.","The SI unit of heat is the joule (J).")
+  val indices=SearchPolicy.comparisonSourceIndices(q,bodies)
+  assertEquals(listOf(0,2),indices)
+  assertEquals(setOf("definition:temperature","unit:temperature"),SearchPolicy.missingComparisonEvidence(q,indices.map { bodies[it] }).toSet())
+  assertTrue(SearchPolicy.comparisonSourceIndices(q,listOf("Unrelated text.")).isEmpty())
+ }
+ @Test fun unitOnlyComparisonEvidenceIsStillReturned() {
+  val q="Compare heat and temperature: what does each mean and what are their SI units?"
+  val bodies=listOf("The SI unit of heat is the joule (J).","The SI unit of temperature is the kelvin (K).")
+  val indices=SearchPolicy.comparisonSourceIndices(q,bodies)
+  assertEquals(setOf(0,1),indices.toSet())
+  assertEquals(setOf("definition:heat","definition:temperature"),SearchPolicy.missingComparisonEvidence(q,bodies).toSet())
+ }
 }
