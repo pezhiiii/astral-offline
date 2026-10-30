@@ -14,9 +14,7 @@ class ComparisonPlanTest {
  }
  @Test fun usesOtherTopicsAndSkipsUnsupportedForms() {
   val tasks=ComparisonPlan.questions("Compare length and time: what are their SI units?")
-  assertEquals(2,tasks.size)
-  assertTrue(tasks[0].contains("length"))
-  assertTrue(tasks[1].contains("time"))
+  assertTrue(tasks.isEmpty()) // Unparsed comparison requests use the full original question.
   assertTrue(ComparisonPlan.questions("What is mass?").isEmpty())
   assertTrue(ComparisonPlan.questions("Compare cats and dogs.").isEmpty())
  }
@@ -31,5 +29,14 @@ class ComparisonPlanTest {
   assertNotNull(ComparisonPlan.scenarioRejection(q,2,"Mass stays constant and weight decreases [1]."))
   assertNull(ComparisonPlan.scenarioRejection(q,2,"From Earth to Moon mass stays constant and weight decreases [1]."))
   assertNull(ComparisonPlan.scenarioRejection(q,0,"Mass measures inertia [1]."))
+ }
+ @Test fun preservesDirectionRequestAndItsSources() {
+  val q="Compare speed and velocity: what does each measure, what are their SI units, and how does direction distinguish them?"
+  val tasks=ComparisonPlan.questions(q)
+  assertEquals(3,tasks.size)
+  assertTrue(tasks[2].contains(q))
+  assertEquals(listOf(0,1),ComparisonPlan.sourceIndices(q,2,listOf("Velocity includes direction; speed does not.","Both use metres per second.")))
+  assertNotNull(ComparisonPlan.scenarioRejection(q,2,"Speed and velocity use m/s [2]."))
+  assertNull(ComparisonPlan.scenarioRejection(q,2,"Velocity includes direction whereas speed does not [1]."))
  }
 }

@@ -68,4 +68,11 @@ class CitationPolicyTest {
   assertNotNull(CitationPolicy.evidenceRejectionReason("The weight is 12 N. [1]",evidence))
   assertNull(CitationPolicy.evidenceRejectionReason("Weight is a force. [1]",evidence))
  }
+ @Test fun rejectsUnsupportedSquaredTimeUnit() {
+  for(unit in listOf("m/s2","m/s^2","m/s²","meters per second squared")) {
+   assertNotNull(CitationPolicy.unitCitationRejection("Speed uses $unit [1].",listOf("Speed uses meters per second (m/s).")))
+   assertNull(CitationPolicy.unitCitationRejection("Acceleration uses $unit [1].",listOf("Acceleration uses meters per second squared.")))
+  }
+  assertNull(CitationPolicy.unitCitationRejection("Speed uses m/s [1].",listOf("Speed uses meters per second (m/s).")))
+ }
 }

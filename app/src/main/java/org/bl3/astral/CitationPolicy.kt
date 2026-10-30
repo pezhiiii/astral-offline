@@ -68,6 +68,11 @@ internal object CitationPolicy {
    val ids=Regex("\\[(\\d+)\\]").findAll(line).mapNotNull { it.groupValues[1].toIntOrNull() }.toList()
    val cited=ids.mapNotNull { excerpts.getOrNull(it-1) }.joinToString(" ")
    val text=line.replace(Regex("\\[\\d+\\]"),"")
+   // Conservative lexical support for a common squared-time compound unit.
+   // No dimensional correctness or quantity association is inferred.
+   val squared=Regex("(?i)(?:\\bm\\s*/\\s*s\\s*(?:\\^\\s*2|2|²)|\\b(?:metres?|meters?) per second squared\\b)")
+   if(squared.containsMatchIn(text) && !squared.containsMatchIn(cited))
+    return "The cited source does not supply the stated squared-time unit."
    for((name,pattern) in unitPatterns) {
     if(pattern.containsMatchIn(text) && !pattern.containsMatchIn(cited))
      return "A cited source does not contain the stated unit ($name) on this answer line."
