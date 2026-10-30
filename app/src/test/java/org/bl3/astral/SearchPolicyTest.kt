@@ -104,4 +104,11 @@ class SearchPolicyTest {
   assertEquals(setOf(0,1),indices.toSet())
   assertEquals(setOf("definition:heat","definition:temperature"),SearchPolicy.missingComparisonEvidence(q,bodies).toSet())
  }
+ @Test fun adjacentScaleSentencesRetainUnitEvidence() {
+  val text="Thermometers use temperature scales. The most common scales are the Celsius scale and the Kelvin scale (K). The kelvin is one of the seven base units in the International System of Units (SI)."
+  assertEquals(text,SearchPolicy.unitExcerpt("SI unit of temperature",text))
+  assertEquals(null,SearchPolicy.unitExcerpt("SI unit of temperature",text,10))
+  assertEquals(null,SearchPolicy.unitExcerpt("SI unit of temperature","Temperature rises. Heat uses the joule scale. The joule is an SI unit."))
+  assertEquals(null,SearchPolicy.unitExcerpt("SI unit of temperature","Temperature scales include kelvin. The kelvin is a base unit"))
+ }
 }

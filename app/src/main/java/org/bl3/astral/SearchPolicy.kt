@@ -312,8 +312,36 @@ internal object SearchPolicy {
     ("si" in words || "international system" in sentence.lowercase(Locale.ROOT)) &&
     Regex("(?i)\\b(is|are)\\b").containsMatchIn(sentence)
   }
+  // A scale can be named in one sentence and identified as an SI unit in
+  // the next. Keep the original contiguous sentences, never synthesize a unit.
+  val linked=mutableListOf<String>()
+  val complete=sentences.map { it.trim() }
+  for(end in complete.indices) {
+   val last=complete[end]
+   val unitName=Regex("(?i)^(?:the\\s+)?([a-z]+)\\s+is\\s+.*\\bunits?\\b").find(last)
+    ?.groupValues?.get(1)?.lowercase(Locale.ROOT) ?: continue
+   if(!Regex("[.!?]$").containsMatchIn(last) ||
+    !("si" in tokens(last) || "international system" in last.lowercase(Locale.ROOT))) continue
+   for(start in maxOf(0,end-2) until end) {
+    val window=complete.subList(start,end+1)
+    if(window.any { !Regex("[.!?]$").containsMatchIn(it) }) continue
+    val subjectSentence=window.first()
+    if(!topics.any { topic -> tokens(topic).all { it in tokens(subjectSentence) } }) continue
+    // Require a scale statement to connect the subject to the named unit.
+    // Mere proximity (temperature sentence followed by heat/joule) is insufficient.
+    val scaleIndex=window.dropLast(1).indexOfLast {
+     val t=tokens(it)
+     unitName in t && ("scale" in t || "scales" in t)
+    }
+    if(scaleIndex<0) continue
+    if(scaleIndex>0 && tokens(subjectSentence).intersect(tokens(window[scaleIndex]))
+      .none { it=="scale" || it=="scales" }) continue
+    linked.add(window.joinToString(" "))
+    break
+   }
+  }
   var used=0
-  return selected.filter { sentence ->
+  return (selected+linked).distinct().filter { sentence ->
    val n=sentence.split(Regex("\\s+")).size
    if(used+n<=maxWords) { used+=n;true } else false
   }.distinct().joinToString("\n").ifBlank { null }
