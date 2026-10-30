@@ -111,4 +111,15 @@ class SearchPolicyTest {
   assertEquals(null,SearchPolicy.unitExcerpt("SI unit of temperature","Temperature rises. Heat uses the joule scale. The joule is an SI unit."))
   assertEquals(null,SearchPolicy.unitExcerpt("SI unit of temperature","Temperature scales include kelvin. The kelvin is a base unit"))
  }
+ @Test fun comparisonDefinitionsPreserveDomainQualifier() {
+  val q="Compare heat and temperature: what does each mean and what are their SI units?"
+  val definition="In classical thermodynamics and kinetic theory, temperature is a macroscopic state variable which reflects the average kinetic energy of the particles in a system."
+  assertEquals(definition,SearchPolicy.comparisonDefinitions(q,definition)["temperature"])
+  assertTrue(SearchPolicy.comparisonDefinitions(q,"In thermodynamics, heat is defined as energy in transfer.").containsKey("heat"))
+  assertFalse(SearchPolicy.comparisonDefinitions(q,"In biology, temperature is important in many fields.").containsKey("temperature"))
+  assertFalse(SearchPolicy.comparisonDefinitions(q,"A report says temperature is a state variable.").containsKey("temperature"))
+  assertFalse(SearchPolicy.comparisonDefinitions(q,definition.dropLast(1)).containsKey("temperature"))
+  val sources=listOf("Heat is a process quantity.",definition,"The SI unit of heat is the joule.","The SI unit of temperature is the kelvin.")
+  assertTrue(SearchPolicy.missingComparisonEvidence(q,sources).isEmpty())
+ }
 }
