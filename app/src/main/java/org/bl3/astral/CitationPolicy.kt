@@ -84,13 +84,17 @@ internal object CitationPolicy {
  }
  /** Observable output defects only; this is not an entailment checker. */
  fun qualityRejectionReason(question: String, answer: String, excerpts: List<String>): String? {
+  if(Regex("(\\[\\d+\\])(?:\\s*\\1)+").containsMatchIn(answer))
+   return "The answer repeats an adjacent source reference."
   if(question.isBlank()) return null
   if(question.all { it.code<128 } && answer.any { it.isLetter() && it.code>=128 } &&
    answer.filter { it.isLetter() && it.code>=128 }.any { it !in excerpts.joinToString(" ") })
    return "The English answer introduced letters absent from the question and evidence."
   val clean=answer.replace(Regex("\\[\\d+\\]"),"")
-  if(Regex("(?i)\\b(with|of|to|from|because|and|or|while|than|due|in|on|at|by|for|is|are)\\s*[,;:]*\\s*[.!?](?:\\s|$)").containsMatchIn(clean))
+  if(Regex("(?i)\\b(with|of|to|from|because|and|or|while|than|due|in|on|at|by|for|is|are|the|an|a|being)\\s*[,;:]*\\s*[.!?](?:\\s|$)").containsMatchIn(clean))
    return "A sentence ends with an unfinished phrase."
+  if(SearchPolicy.unitTopics(question).isNotEmpty() && clean.trim().split(Regex("\\s+")).size>32)
+   return "A unit-only answer must be at most 32 words."
   if(SearchPolicy.isComparison(question)) {
    if(SearchPolicy.missingComparisonTopics(question,answer).isNotEmpty())
     return "The answer omits a requested comparison subject."

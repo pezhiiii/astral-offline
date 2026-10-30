@@ -82,4 +82,13 @@ class CitationPolicyTest {
   for(unit in listOf("metres per second","m/s","m·s−1"))
    assertNull(CitationPolicy.unitCitationRejection("Velocity uses $unit [1].",evidence))
  }
+ @Test fun rejectsObservedUnitDraftDefects() {
+  val q="SI unit of temperature"
+  val evidence=listOf("The kelvin is an SI base unit.")
+  assertNotNull(CitationPolicy.qualityRejectionReason(q,"Temperature uses kelvin, being the [1].",evidence))
+  assertNotNull(CitationPolicy.qualityRejectionReason(q,"Temperature uses kelvin [1] [1].",evidence))
+  assertNotNull(CitationPolicy.qualityRejectionReason(q,"Temperature uses kelvin "+"extra ".repeat(33)+"[1].",evidence))
+  assertNull(CitationPolicy.qualityRejectionReason(q,"The SI unit of temperature is the kelvin [1].",evidence))
+  assertNull(CitationPolicy.qualityRejectionReason("Explain temperature","Temperature uses kelvin [1]. Temperature is measured [1].",evidence))
+ }
 }
