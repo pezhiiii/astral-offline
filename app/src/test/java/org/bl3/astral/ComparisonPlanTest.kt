@@ -74,4 +74,13 @@ class ComparisonPlanTest {
   assertNull(ComparisonPlan.partRejection(q,1,"Temperature is a state variable, measured in kelvin [2].",sources))
   assertNotNull(ComparisonPlan.partRejection(q,2,"Heat is energy transfer [1].",sources))
  }
+ @Test fun subjectPromptKeepsDefinitionAndSIUnitSentence() {
+  val q="Compare heat and temperature: what does each mean, what are their SI units, and how do they differ?"
+  val definition="Temperature is a state variable."
+  val unit="The kelvin is one of the seven base units in the International System of Units (SI)."
+  val text=definition+" Thermometers use temperature scales. The scales include the Celsius scale and Kelvin scale. "+unit
+  assertEquals(definition+"\n"+unit,ComparisonPlan.partExcerpt(q,1,text))
+  assertNotNull(ComparisonPlan.partRejection(q,2,"Heat differs from temperature [1].\nSources: [1].",listOf(text)))
+  assertNotNull(ComparisonPlan.partRejection(q,2,"Heat temperature "+"word ".repeat(41)+"[1].",listOf(text)))
+ }
 }

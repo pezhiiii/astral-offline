@@ -2,6 +2,17 @@ package org.bl3.astral
 
 /** Narrow decomposition only for two-topic measurement/unit questions. No factual answers. */
 internal object ComparisonPlan {
+ /** Verbatim sentence selections; the original excerpts remain available for review. */
+ fun partExcerpt(question: String, part: Int, text: String): String {
+  val topic=SearchPolicy.comparisonTopics(question).getOrNull(part) ?: return text
+  val definition=SearchPolicy.comparisonDefinitions(question,text)[topic]
+  val unit=SearchPolicy.unitExcerpt("SI unit of $topic",text)
+  val unitSentence=unit?.split(Regex("(?<=[.!?])\\s+|\\n+"))?.lastOrNull {
+   Regex("(?i)\\bunits?\\b").containsMatchIn(it) &&
+    ("si" in SearchPolicy.tokens(it) || "international system" in it.lowercase())
+  }
+  return listOfNotNull(definition,unitSentence).distinct().joinToString("\n").ifBlank { text }
+ }
  /** Lexical source roles for the current subject; these are not factual validation. */
  fun citationGuidance(question: String, part: Int, excerpts: List<String>): String {
   val topic=SearchPolicy.comparisonTopics(question).getOrNull(part) ?: return ""
@@ -44,6 +55,13 @@ internal object ComparisonPlan {
  }
  /** Per-part lexical coverage, not semantic verification. */
  fun partRejection(question: String, part: Int, answer: String, excerpts: List<String>): String? {
+  if(answer.lines().count { it.isNotBlank() }!=1)
+   return "Each comparison part must contain exactly one answer line."
+  val plain=answer.replace(Regex("\\[\\d+\\]"),"").trim()
+  if(plain.split(Regex("\\s+")).size>40)
+   return "Each comparison part must contain at most 40 words."
+  if(Regex("(?im)^\\s*(sources?|references?|bibliography)\\s*:").containsMatchIn(answer))
+   return "A separate source list is not an answer sentence."
   val topic=SearchPolicy.comparisonTopics(question).getOrNull(part)
    ?: return scenarioRejection(question,part,answer)
   if(!SearchPolicy.tokens(topic).all { it in SearchPolicy.tokens(answer) })
