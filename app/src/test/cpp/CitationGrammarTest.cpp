@@ -9,6 +9,9 @@ int main() {
   assert(g.find("core{1,32}")!=std::string::npos);
   assert(g.find("cite)*")==std::string::npos);
   assert(g.find("root ::= line")!=std::string::npos);
+  for(const auto* code : {"u00B7", "u00B9", "u00B2", "u00B3", "u207B", "u2212"})
+   assert(g.find(code)!=std::string::npos);
+  assert(g.find("\"^\"")!=std::string::npos);
  }
  assert(astral_citation_grammar(2,true).find("uFFFF")==std::string::npos);
  assert(astral_citation_grammar(2,false).find("uFFFF")!=std::string::npos);

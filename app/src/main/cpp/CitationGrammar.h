@@ -17,7 +17,7 @@ inline std::string astral_citation_grammar(int source_count, bool english_only =
         "line ::= body \" \" cite (\" \" cite)? \".\"\n"
         "body ::= word (\" \" word){0,63}\n"
         "word ::= core{1,32} [,)%;:]? | [0-9]{1,6} \".\" [0-9]{1,6}\n"
-        "core ::= letter | ['(/+-]\n"
+        "core ::= letter | ['(/+-] | [\\u00B7\\u00B9\\u00B2\\u00B3\\u207B\\u2212] | \"^\"\n"
         "letter ::= "+letters+"\n"
         "cite ::= "+refs+"\n";
 }
