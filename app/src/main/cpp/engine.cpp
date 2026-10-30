@@ -109,7 +109,7 @@ extern "C" JNIEXPORT jbyteArray JNICALL Java_org_bl3_astral_Engine_answer(JNIEnv
   const auto diagnostics=std::string("\nModel description: ")+astral_diagnostic_text(model_desc)+
    "\nModel name: "+astral_diagnostic_text(model_name)+"\nArchitecture: "+astral_diagnostic_text(architecture)+
    "\nChat template: GGUF default; FNV-1a "+astral_template_id(tmpl)+
-   "\nSampler: citation grammar + greedy\nPrompt content: instructions present; question present (text check only)";
+   "\nSampler: bounded citation grammar + greedy\nPrompt content: instructions present; question present (text check only)";
   auto vocab=llama_model_get_vocab(model);
   int nt=llama_tokenize(vocab,prompt.data(),size,nullptr,0,true,true);
   if(nt>=0) throw std::runtime_error("Unexpected tokenizer result");

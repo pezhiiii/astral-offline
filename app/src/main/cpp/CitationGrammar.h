@@ -10,12 +10,12 @@ inline std::string astral_citation_grammar(int source_count) {
   if(i>1) refs+=" | ";
   refs+="\"["+std::to_string(i)+"]\"";
  }
- // One to three lines. Sentence punctuation can only follow citations.
- // Decimal points are allowed only between digits; abbreviations are spelled out.
+ // Bounded words and references prevent an unfinished, unbounded first line.
+ // Bounds apply to grammar characters/words, not tokenizer tokens.
  return "root ::= line (\"\\n\" line (\"\\n\" line)?)? \"\\n\"?\n"
-        "line ::= body \" \" cite (\" \" cite)* \".\"\n"
-        "body ::= (letter | decimal | [0-9]) (letter | decimal | [0-9 ,;:'()/+%−–—-])*\n"
-        "letter ::= [a-zA-Z] | [\\u0080-\\uFFFF]\n"
-        "decimal ::= [0-9]+ \".\" [0-9]+\n"
+        "line ::= body \" \" cite (\" \" cite)? \".\"\n"
+        "body ::= word (\" \" word){0,17}\n"
+        "word ::= char{1,24} | [0-9]{1,6} \".\" [0-9]{1,6}\n"
+        "char ::= [a-zA-Z0-9,;:'()/+%−–—-] | [\\u00C0-\\uFFFF]\n"
         "cite ::= "+refs+"\n";
 }

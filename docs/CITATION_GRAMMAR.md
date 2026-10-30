@@ -1,3 +1,5 @@
+Historical notes for 0.1.71; superseded by BOUNDED_CITATIONS.md in 0.1.72.
+
 # 0.1.71: citation-constrained decoding
 
 The 0.1.70 phone report identified qwen2.5-1.5b-instruct, GGUF default template,

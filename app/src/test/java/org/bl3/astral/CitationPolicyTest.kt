@@ -2,6 +2,16 @@ package org.bl3.astral
 import org.junit.Assert.*
 import org.junit.Test
 class CitationPolicyTest {
+ @Test fun rejectsTokenLimitEvenWhenLastSentenceHasValidCitation() {
+  val answer="Mass is measured in kilograms [1]."
+  val evidence=listOf("Mass is measured in kilograms.")
+  assertNull(CitationPolicy.evidenceRejectionReason(answer,evidence,true))
+  assertNotNull(CitationPolicy.evidenceRejectionReason(answer,evidence,false))
+  val shown=CitationPolicy.present(answer,evidence,false)
+  assertTrue(shown.startsWith("MODEL ANSWER REJECTED"))
+  assertTrue(shown.contains("token limit"))
+ }
+
  @Test fun rejectsObservedInventedSecondSource() {
   val draft="[1] Mass is matter. [2] Invented Weight source."
   val result=CitationPolicy.present(draft,listOf("Weight is a force, while mass is a property."))

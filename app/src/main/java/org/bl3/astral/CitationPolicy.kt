@@ -37,7 +37,8 @@ internal object CitationPolicy {
   val tail=answer.substring(start).trim()
   return tail.any { it.isLetter() } && !Regex("\\[\\d+\\]\\s*$").containsMatchIn(tail)
  }
- fun evidenceRejectionReason(answer: String, excerpts: List<String>): String? {
+ fun evidenceRejectionReason(answer: String, excerpts: List<String>, completed: Boolean = true): String? {
+  if(!completed) return "Generation reached the token limit; the draft is incomplete."
   rejectionReason(answer,excerpts.size)?.let { return it }
   if(hasUncitedSentence(answer)) return "Each answer sentence must have an adjacent numeric source reference."
   val plain=answer.replace(Regex("\\[\\d+\\]"),"")
@@ -49,8 +50,8 @@ internal object CitationPolicy {
    return "The model introduced a formula absent from the supplied excerpts."
   return null
  }
- fun present(answer: String, excerpts: List<String>): String {
-  val reason=evidenceRejectionReason(answer,excerpts) ?: return "MODEL ANSWER — source IDs checked; factual support has not been verified.\n\n$answer"
+ fun present(answer: String, excerpts: List<String>, completed: Boolean = true): String {
+  val reason=evidenceRejectionReason(answer,excerpts,completed) ?: return "MODEL ANSWER — source IDs checked; factual support has not been verified.\n\n$answer"
   val quotes=excerpts.mapIndexed { i,text -> "[${i+1}] $text" }.joinToString("\n\n")
   return "MODEL ANSWER REJECTED — $reason\nSOURCE QUOTATIONS ONLY — these are the supplied excerpts, not a generated or repaired answer. Coverage may be partial.\n\n$quotes"
  }
