@@ -63,7 +63,7 @@ class ComparisonPlanTest {
   val temperature=ComparisonPlan.citationGuidance(q,1,excerpts)
   assertTrue(temperature.contains("end it with [2]."))
   assertFalse(temperature.contains("[2] [2]"))
-  assertEquals("",ComparisonPlan.citationGuidance(q,2,excerpts))
+  assertTrue(ComparisonPlan.citationGuidance(q,2,excerpts).contains("[1] [2]"))
  }
  @Test fun eachSubjectPartMustNameSubjectAndUnit() {
   val q="Compare heat and temperature: what does each mean, what are their SI units, and how do they differ?"
@@ -82,5 +82,11 @@ class ComparisonPlanTest {
   assertEquals(definition+"\n"+unit,ComparisonPlan.partExcerpt(q,1,text))
   assertNotNull(ComparisonPlan.partRejection(q,2,"Heat differs from temperature [1].\nSources: [1].",listOf(text)))
   assertNotNull(ComparisonPlan.partRejection(q,2,"Heat temperature "+"word ".repeat(41)+"[1].",listOf(text)))
+ }
+ @Test fun distinctionExcludesUnitOnlySource() {
+  val q="Compare heat and temperature: what does each mean, what are their SI units, and how do they differ?"
+  val sources=listOf("Heat is energy transfer.","Temperature is a macroscopic state variable.","The SI unit of heat is the joule.")
+  assertEquals(listOf(0,1),ComparisonPlan.sourceIndices(q,2,sources))
+  assertEquals(sources[1],ComparisonPlan.partExcerpt(q,2,sources[1]+" The SI unit of temperature is the kelvin."))
  }
 }

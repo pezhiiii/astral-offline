@@ -2,8 +2,19 @@ package org.bl3.astral
 
 /** Narrow decomposition only for two-topic measurement/unit questions. No factual answers. */
 internal object ComparisonPlan {
+ private fun definitionDistinction(question: String, part: Int): Boolean =
+  part==2 && SearchPolicy.comparisonTopics(question).size==2 &&
+   Regex("(?i)\\b(differ|difference|differences|distinguish)\\b").containsMatchIn(question) &&
+   !Regex("(?i)\\bdirection\\b|\\bfrom\\s+.+\\s+to\\b").containsMatchIn(question)
+ private fun distinctionDefinitions(question: String, excerpts: List<String>): List<Int> =
+  SearchPolicy.comparisonTopics(question).mapNotNull { topic ->
+   excerpts.indices.filter { SearchPolicy.comparisonDefinitions(question,excerpts[it]).containsKey(topic) }
+    .maxByOrNull { SearchPolicy.comparisonDefinitions(question,excerpts[it])[topic]?.length ?: 0 }
+  }.distinct()
  /** Verbatim sentence selections; the original excerpts remain available for review. */
  fun partExcerpt(question: String, part: Int, text: String): String {
+  if(definitionDistinction(question,part))
+   return SearchPolicy.comparisonDefinitions(question,text).values.distinct().joinToString("\n").ifBlank { text }
   val topic=SearchPolicy.comparisonTopics(question).getOrNull(part) ?: return text
   val definition=SearchPolicy.comparisonDefinitions(question,text)[topic]
   val unit=SearchPolicy.unitExcerpt("SI unit of $topic",text)
@@ -15,6 +26,10 @@ internal object ComparisonPlan {
  }
  /** Lexical source roles for the current subject; these are not factual validation. */
  fun citationGuidance(question: String, part: Int, excerpts: List<String>): String {
+  if(definitionDistinction(question,part)) {
+   val refs=distinctionDefinitions(question,excerpts).joinToString(" ") { "[${it+1}]" }
+   return "Compare the supplied definitions directly. When combining them, cite their source IDs: $refs. Write no prose about evidence or sources."
+  }
   val topic=SearchPolicy.comparisonTopics(question).getOrNull(part) ?: return ""
   val selected=sourceIndices(question,part,excerpts)
   val definition=selected.firstOrNull { SearchPolicy.comparisonDefinitions(question,excerpts[it]).containsKey(topic) }
@@ -31,6 +46,10 @@ internal object ComparisonPlan {
  /** Keep original IDs; select a passage with the requested unit or scenario. */
  fun sourceIndices(question: String, part: Int, excerpts: List<String>): List<Int> {
   val topics=SearchPolicy.comparisonTopics(question)
+  if(definitionDistinction(question,part)) {
+   val selected=distinctionDefinitions(question,excerpts)
+   if(selected.isNotEmpty()) return selected
+  }
   if(part==topics.size && Regex("(?i)\\bdirection\\b").containsMatchIn(question)) {
    // Prefer a concise passage explicitly covering both subjects and the requested distinction.
    val focused=excerpts.indices.filter {
