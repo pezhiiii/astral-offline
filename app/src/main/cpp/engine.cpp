@@ -4,6 +4,7 @@
 #include <chrono>
 #include <cstdio>
 #include "PromptDiagnostics.h"
+#include "CitationGrammar.h"
 #include <unistd.h>
 #include <algorithm>
 #include <codecvt>
@@ -60,7 +61,7 @@ static std::string utf8(JNIEnv* e, jstring s) {
 }
 extern "C" JNIEXPORT void JNICALL Java_org_bl3_astral_Engine_prepare(JNIEnv*,jobject) { stopped=false; }
 extern "C" JNIEXPORT void JNICALL Java_org_bl3_astral_Engine_cancel(JNIEnv*,jobject) { stopped=true; }
-extern "C" JNIEXPORT jbyteArray JNICALL Java_org_bl3_astral_Engine_answer(JNIEnv* e,jobject,jstring file,jstring sys,jstring question,jint max_tokens,jint threads) {
+extern "C" JNIEXPORT jbyteArray JNICALL Java_org_bl3_astral_Engine_answer(JNIEnv* e,jobject,jstring file,jstring sys,jstring question,jint max_tokens,jint threads,jint source_count) {
  std::lock_guard<std::mutex> lock(engine_mutex);
  try {
   { std::lock_guard<std::mutex> progress_lock(progress_mutex); partial.clear(); metrics.clear(); }
@@ -108,7 +109,7 @@ extern "C" JNIEXPORT jbyteArray JNICALL Java_org_bl3_astral_Engine_answer(JNIEnv
   const auto diagnostics=std::string("\nModel description: ")+astral_diagnostic_text(model_desc)+
    "\nModel name: "+astral_diagnostic_text(model_name)+"\nArchitecture: "+astral_diagnostic_text(architecture)+
    "\nChat template: GGUF default; FNV-1a "+astral_template_id(tmpl)+
-   "\nSampler: greedy\nPrompt content: instructions present; question present (text check only)";
+   "\nSampler: citation grammar + greedy\nPrompt content: instructions present; question present (text check only)";
   auto vocab=llama_model_get_vocab(model);
   int nt=llama_tokenize(vocab,prompt.data(),size,nullptr,0,true,true);
   if(nt>=0) throw std::runtime_error("Unexpected tokenizer result");
@@ -146,7 +147,14 @@ extern "C" JNIEXPORT jbyteArray JNICALL Java_org_bl3_astral_Engine_answer(JNIEnv
    if(llama_decode(ctx,batch)!=0) throw std::runtime_error(stopped?"Cancelled":"Prompt evaluation failed");
   }
   cached_prompt=tokens;
-  std::unique_ptr<llama_sampler,decltype(&llama_sampler_free)> sampler(llama_sampler_init_greedy(),llama_sampler_free);
+  const auto grammar_text=astral_citation_grammar(source_count);
+  auto* grammar=llama_sampler_init_grammar(vocab,grammar_text.c_str(),"root");
+  if(!grammar) throw std::runtime_error("Citation grammar failed; generation not run.");
+  std::unique_ptr<llama_sampler,decltype(&llama_sampler_free)> sampler(
+   llama_sampler_chain_init(llama_sampler_chain_default_params()),llama_sampler_free);
+  if(!sampler) { llama_sampler_free(grammar);throw std::runtime_error("Cannot allocate sampler chain"); }
+  llama_sampler_chain_add(sampler.get(),grammar);
+  llama_sampler_chain_add(sampler.get(),llama_sampler_init_greedy());
   const double evaluation_time=seconds(evaluation_started);
   const auto generation_started=Clock::now();
   double first_token_time=0; int generated=0;

@@ -239,7 +239,7 @@ class MainActivity: Activity() {
       progressHandler.post(progressTick)
      }
      if(cancelRequested.get()) { ui { output.text="Stopped." };return@execute }
-     val answer=String(Engine.answer(model.path,system,q,128,requestedThreads),Charsets.UTF_8)
+     val answer=String(Engine.answer(model.path,system,q,128,requestedThreads,modelHits.size),Charsets.UTF_8)
      val timings=String(Engine.metrics(),Charsets.UTF_8)
      val missingTopics=if(isComparison) SearchPolicy.missingComparisonTopics(q,answer) else emptyList()
      val coverageNote=if(missingTopics.isEmpty()) "" else
