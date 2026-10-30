@@ -24,4 +24,11 @@ class DefinitionCitationTest {
   assertTrue(CitationPolicy.hasUncitedSentence("First claim. [1] Another claim"))
   assertFalse(CitationPolicy.hasUncitedSentence("First claim [1]"))
  }
+ @Test fun observedPhoneDraftRemainsRejectedAndAdjacentVersionPasses() {
+  val facts=listOf("Mass is a measure of inertia. The unit of mass is the kilogram. On the Moon it has the same mass.","Weight is a force, measured in newtons; it decreases on the Moon.")
+  val draft="Mass is a measure of inertia. Its unit is the kilogram. Weight is measured in newtons. Mass remains the same on the Moon. [1] [2]"
+  assertNotNull(CitationPolicy.evidenceRejectionReason(draft,facts))
+  val cited="Mass measures inertia and its unit is the kilogram [1].\nWeight is a force measured in newtons [2].\nOn the Moon mass stays the same while weight decreases [1] [2]."
+  assertNull(CitationPolicy.evidenceRejectionReason(cited,facts))
+ }
 }
