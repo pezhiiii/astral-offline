@@ -81,4 +81,12 @@ class SearchPolicyTest {
   assertNull(SearchPolicy.definitionAnchor(q,SearchPolicy.terms(q)))
   assertEquals("ecosystem",SearchPolicy.definitionAnchor("What is an ecosystem?",SearchPolicy.terms("What is an ecosystem?")))
  }
+ @Test fun comparisonRequiresDefinitionAndUnitEvidenceForEachSubject() {
+  val q="Compare heat and temperature: what does each mean, what are their SI units, and how do they differ?"
+  val partial=listOf("Heat is a process quantity.", "Temperature is important in all fields of natural science.", "The SI unit of heat is the joule (J).")
+  assertFalse(SearchPolicy.comparisonDefinitions(q,partial[1]).containsKey("temperature"))
+  assertEquals(setOf("definition:temperature","unit:temperature"),SearchPolicy.missingComparisonEvidence(q,partial).toSet())
+  assertTrue(SearchPolicy.missingComparisonEvidence(q,partial+listOf("Temperature is a thermodynamic state property.","The SI unit of temperature is the kelvin (K).")).isEmpty())
+  assertTrue(SearchPolicy.candidateQueries(q).first().contains("unit OR units"))
+ }
 }

@@ -51,6 +51,12 @@ internal object SearchPolicy {
   * in terms() for excerpt selection, but do not require them in documents. */
  fun candidateQueries(question: String): List<String> {
   val queryTerms=terms(question)
+  val comparison=comparisonTopics(question)
+  if(comparison.size==2) return comparison.flatMap { topic ->
+   val subject=tokens(topic).joinToString(" AND ") { "\"$it\"" }
+   listOf("($subject) AND (unit OR units)", "($subject) AND (defined OR means OR refers)",
+    "($subject) AND (is OR are)", subject)
+  }.distinct()
   val units=unitTopics(question)
   if(units.isNotEmpty()) return units.flatMap { listOf("title:$it", "body:$it") }
   val anchor=subjectAnchor(question) ?: definitionAnchor(question,queryTerms)
@@ -137,9 +143,21 @@ internal object SearchPolicy {
    sentences.sortedByDescending { sentence ->
     (if(Regex("(?i)\\b(measure|measures|resistance|inertia)\\b").containsMatchIn(sentence)) 4 else 0) +
     (if(Regex("(?i)\\b(experimentally|defined)\\b").containsMatchIn(sentence)) 2 else 0)
-   }.firstOrNull { defining.containsMatchIn(it) && Regex("[.!?]$").containsMatchIn(it.trim()) && it.split(Regex("\\s+")).size<=70 }
+   }.firstOrNull { defining.containsMatchIn(it) && !Regex("(?i)\\b(?:is|are)\\s+(?:very\\s+)?(?:important|useful|used|common|widely)\\b").containsMatchIn(it) && Regex("[.!?]$").containsMatchIn(it.trim()) && it.split(Regex("\\s+")).size<=70 }
     ?.let { topic to it.trim() }
   }.toMap()
+ }
+
+ /** Required lexical facets before synthesis; not factual entailment. */
+ fun missingComparisonEvidence(question: String, bodies: List<String>): List<String> {
+  val topics=comparisonTopics(question)
+  if(topics.size!=2) return emptyList()
+  val covered=bodies.flatMap { comparisonFacets(question,it).keys }.toSet()
+  val required=mutableListOf<String>()
+  if(Regex("(?i)\\b(mean|means|measure|measures|define|definition)\\b").containsMatchIn(question))
+   required.addAll(topics.map { "definition:$it" })
+  if(Regex("(?i)\\bunits?\\b").containsMatchIn(question)) required.addAll(topics.map { "unit:$it" })
+  return required.filter { it !in covered }
  }
 
  fun comparisonEvidence(question: String, body: String): String? =
