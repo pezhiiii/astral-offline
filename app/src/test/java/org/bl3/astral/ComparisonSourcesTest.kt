@@ -34,4 +34,11 @@ class ComparisonSourcesTest {
  @Test fun headingsAloneDoNotCountAsCoverage() {
   assertEquals(listOf("boiling"),SearchPolicy.missingComparisonTopics(q,"Boiling:\nEvaporation is a surface process. [1]"))
  }
+ @Test fun preservesRelevantNeighboringContext() {
+  val q="Compare mass and weight."
+  val body="An object on the Moon has less weight but the same mass. Weight is a force, while mass determines that force with gravity. Attribution: example."
+  val result=SearchPolicy.comparisonContext(q,body)!!
+  assertTrue(result.contains("Moon"))
+  assertFalse(result.contains("Attribution:"))
+ }
 }

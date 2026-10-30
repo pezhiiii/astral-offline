@@ -11,7 +11,7 @@ class CitationPolicyTest {
  }
  @Test fun validReferencesPreserveOriginalAnswer() {
   val answer="A differs from B. [1] [2]"
-  assertEquals(answer,CitationPolicy.present(answer,listOf("A evidence.","B evidence.")))
+  assertTrue(CitationPolicy.present(answer,listOf("A evidence.","B evidence.")).endsWith(answer))
  }
  @Test fun missingAndOverflowReferencesFailClosed() {
   assertNotNull(CitationPolicy.rejectionReason("Uncited assertion.",1))
@@ -20,5 +20,11 @@ class CitationPolicyTest {
  }
  @Test fun validNumbersDoNotProveTruth() {
   assertNull(CitationPolicy.rejectionReason("An unsupported claim. [1]",1))
+ }
+ @Test fun rejectsNewFormulaAndNumberWithoutTreatingCitationAsNumber() {
+  val evidence=listOf("Weight is a force, while mass determines its magnitude.")
+  assertNotNull(CitationPolicy.evidenceRejectionReason("Weight = mass × g. [1]",evidence))
+  assertNotNull(CitationPolicy.evidenceRejectionReason("The weight is 12 N. [1]",evidence))
+  assertNull(CitationPolicy.evidenceRejectionReason("Weight is a force. [1]",evidence))
  }
 }

@@ -119,6 +119,27 @@ internal object SearchPolicy {
  fun comparisonEvidence(question: String, body: String): String? =
   comparisonQuote(question,body) ?: comparisonDefinitions(question,body).values.distinct().joinToString("\n").ifBlank { null }
 
+ /** Keep verbatim context around the selected comparison, within a fixed budget. */
+ fun comparisonContext(question: String, body: String, maxWords: Int = 120): String? {
+  val seed=comparisonEvidence(question,body) ?: return null
+  val sentences=DocumentSections.quotationBody(body).split(Regex("(?<=[.!?])\\s+|\\n+"))
+   .map { it.trim() }.filter { it.isNotEmpty() }
+  val selected=sentences.indices.filter { sentences[it] in seed }.toMutableSet()
+  if(selected.isEmpty()) return seed
+  var used=selected.sumOf { sentences[it].split(Regex("\\s+")).size }
+  val topics=comparisonTopics(question).flatMap { tokens(it) }.toSet()
+  val neighbors=selected.toList().flatMap { i -> listOf(i-1,i+1,i-2,i+2) }.distinct()
+  for(i in neighbors) {
+   if(i !in sentences.indices || i in selected) continue
+   val sentence=sentences[i]
+   if(!Regex("[.!?]$").containsMatchIn(sentence) || tokens(sentence).intersect(topics).isEmpty()) continue
+   if(Regex("(?i)\\b(attribution|license|https?|article|source):").containsMatchIn(sentence)) continue
+   val n=sentence.split(Regex("\\s+")).size
+   if(used+n<=maxWords) { selected.add(i);used+=n }
+  }
+  return selected.sorted().joinToString(" ") { sentences[it] }
+ }
+
  fun comparisonSourceIndices(question: String, bodies: List<String>): List<Int> {
   val direct=bodies.indexOfFirst { comparisonQuote(question,it)!=null }
   if(direct>=0) return listOf(direct)
