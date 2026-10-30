@@ -51,6 +51,16 @@ internal object CitationPolicy {
    return "The model introduced a formula absent from the supplied excerpts."
   return null
  }
+ // Limited lexical unit coverage; neither quantity association nor correctness is proven.
+ private val unitPatterns=listOf(
+  "kilogram" to Regex("(?i:\\bkilograms?\\b)|\\bkg\\b"),
+  "newton" to Regex("(?i:\\bnewtons?\\b)|\\bN\\b"),
+  "metre" to Regex("(?i:\\b(?:metres?|meters?)\\b)|\\bm\\b"),
+  "second" to Regex("(?i:\\bseconds?\\b)|\\bs\\b"),
+  "kelvin" to Regex("(?i:\\bkelvins?\\b)|\\bK\\b"),
+  "ampere" to Regex("(?i:\\bamperes?\\b)|\\bA\\b"),
+  "joule" to Regex("(?i:\\bjoules?\\b)|\\bJ\\b")
+ )
  /** Observable output defects only; this is not an entailment checker. */
  fun qualityRejectionReason(question: String, answer: String, excerpts: List<String>): String? {
   if(question.isBlank()) return null
@@ -58,11 +68,21 @@ internal object CitationPolicy {
    answer.filter { it.isLetter() && it.code>=128 }.any { it !in excerpts.joinToString(" ") })
    return "The English answer introduced letters absent from the question and evidence."
   val clean=answer.replace(Regex("\\[\\d+\\]"),"")
-  if(Regex("(?i)\\b(with|of|to|from|because|and|or|while|than|due|in|on|at|by|for|is|are)\\s*[.!?](?:\\s|$)").containsMatchIn(clean))
+  if(Regex("(?i)\\b(with|of|to|from|because|and|or|while|than|due|in|on|at|by|for|is|are)\\s*[,;:]*\\s*[.!?](?:\\s|$)").containsMatchIn(clean))
    return "A sentence ends with an unfinished phrase."
   if(SearchPolicy.isComparison(question)) {
    if(SearchPolicy.missingComparisonTopics(question,answer).isNotEmpty())
     return "The answer omits a requested comparison subject."
+   if(Regex("(?i)\\bunits?\\b").containsMatchIn(question)) {
+    val evidence=excerpts.joinToString("\n")
+    for(topic in SearchPolicy.comparisonTopics(question)) {
+     val unitEvidence=SearchPolicy.unitExcerpt("SI unit of $topic",evidence) ?: continue
+     for((name,pattern) in unitPatterns) {
+      if(pattern.containsMatchIn(unitEvidence) && !pattern.containsMatchIn(clean))
+       return "The answer omits the requested unit for $topic ($name)."
+     }
+    }
+   }
    val scenario=Regex("(?i)from\\s+(.+?)\\s+to\\s+(?:the\\s+)?([\\p{L}]+)").find(question.substringBefore('?'))
    if(scenario!=null) {
     val places=SearchPolicy.terms(scenario.groupValues[1])+SearchPolicy.terms(scenario.groupValues[2])

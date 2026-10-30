@@ -2,6 +2,22 @@ package org.bl3.astral
 import org.junit.Assert.*
 import org.junit.Test
 class CitationPolicyTest {
+ private val unitQuestion="Compare mass and weight: what are their SI units?"
+ private val unitEvidence=listOf("The SI unit of mass is the kilogram (kg).", "The unit of weight in SI is the newton.")
+ @Test fun rejectsDanglingEndingDespitePunctuationAndReferences() {
+  for(end in listOf("and,", "with;", "because:", "and"))
+   assertNotNull(CitationPolicy.qualityRejectionReason("What is weight?","Weight is force $end [1] [2].",unitEvidence))
+ }
+ @Test fun rejectsOmittedUnitAndAllowsNamesOrSymbols() {
+  assertNotNull(CitationPolicy.qualityRejectionReason(unitQuestion,"Mass is measured in kilograms while weight is a force [1] [2].",unitEvidence))
+  assertNull(CitationPolicy.qualityRejectionReason(unitQuestion,"Mass uses kg and weight uses N [1] [2].",unitEvidence))
+  assertNull(CitationPolicy.qualityRejectionReason(unitQuestion,"Mass uses kilograms and weight uses newtons [1] [2].",unitEvidence))
+ }
+ @Test fun unitGateRequiresRequestedUnitsAndIdentifiableEvidence() {
+  assertNull(CitationPolicy.qualityRejectionReason("Compare mass and weight.","Mass and weight differ [1].",unitEvidence))
+  assertNull(CitationPolicy.qualityRejectionReason(unitQuestion,"Mass and weight differ [1].",listOf("Mass and weight differ.")))
+ }
+
  private val comparison="Compare mass and weight: what changes when moving from Earth to the Moon? Cite the sources."
  @Test fun rejectsObservedMixedScriptAndDanglingSentence() {
   assertNotNull(CitationPolicy.qualityRejectionReason(comparison,"Mass is constant or引力強度 [1].",listOf("Mass is inertia.")))
