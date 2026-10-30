@@ -61,10 +61,30 @@ internal object SearchPolicy {
   return (listOf(exactTitle,exact)+pairs+focus.flatMap { listOf("title:$it","body:$it") }).distinct()
  }
 
+ /** For why questions, require the core terms together in a complete sentence.
+  * Grammatical continuation verbs are not treated as subject keywords. */
+ fun explanationTerms(question: String): List<String> {
+  if(!Regex("(?i)^\\s*why\\b").containsMatchIn(question)) return emptyList()
+  return terms(question.substringBefore('?')).filter { it !in setOf("while","keeping","maintaining","remaining") }
+ }
+ fun explanationExcerpt(question: String, body: String, maxWords: Int = 90): String? {
+  val wanted=explanationTerms(question)
+  if(wanted.size<2) return null
+  return DocumentSections.quotationBody(body).split(Regex("(?<=[.!?])\\s+|\\n+"))
+   .map { it.trim() }.filter { Regex("[.!?]$").containsMatchIn(it) }
+   .firstOrNull { sentence ->
+    val available=tokens(sentence)
+    wanted.all { term -> term in available ||
+     (term.endsWith("s") && !term.endsWith("ss") && term.dropLast(1) in available) || term+"s" in available }
+     && sentence.split(Regex("\\s+")).size<=maxWords
+   }
+ }
+
  /** Lexical subject gate, not a claim verifier. Reject incidental mentions and
   * require comparison subjects to occur together in the candidate passage. */
  fun acceptsSubject(question: String, title: String, body: String): Boolean {
   if(isComparison(question)) return comparisonEvidence(question,body)!=null
+  if(explanationTerms(question).isNotEmpty()) return explanationExcerpt(question,body)!=null
   val titleWords=tokens(title.substringBefore(" — "))
   val bodyWords=tokens(body)
   val anchor=subjectAnchor(question) ?: definitionAnchor(question,terms(question))
