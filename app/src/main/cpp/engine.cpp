@@ -163,9 +163,10 @@ extern "C" JNIEXPORT jbyteArray JNICALL Java_org_bl3_astral_Engine_answer(JNIEnv
   report("Generating answer");
   for(int i=0;i<budget;i++) {
    if(stopped) throw std::runtime_error("Cancelled");
+   // llama_sampler_sample applies AND accepts the chosen token (llama.h contract).
+   // A second accept advances grammar state twice and can empty its stack.
    auto token=llama_sampler_sample(sampler.get(),ctx,-1);
    if(llama_vocab_is_eog(vocab,token)) { reached_end=true;break; }
-   llama_sampler_accept(sampler.get(),token);
    std::vector<char> piece(256);
    int len=llama_token_to_piece(vocab,token,piece.data(),piece.size(),0,false);
    if(len<0) {piece.resize(-len);len=llama_token_to_piece(vocab,token,piece.data(),piece.size(),0,false);}
