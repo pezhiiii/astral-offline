@@ -92,8 +92,8 @@ internal object CitationPolicy {
   }
   return null
  }
- fun present(answer: String, excerpts: List<String>, completed: Boolean = true, question: String = ""): String {
-  val reason=evidenceRejectionReason(answer,excerpts,completed,question) ?: return "MODEL ANSWER — source IDs checked; factual support has not been verified.\n\n$answer"
+ fun present(answer: String, excerpts: List<String>, completed: Boolean = true, question: String = "", extraRejection: String? = null): String {
+  val reason=extraRejection ?: evidenceRejectionReason(answer,excerpts,completed,question) ?: return "MODEL ANSWER — source IDs checked; factual support has not been verified.\n\n$answer"
   val quotes=excerpts.mapIndexed { i,text -> "[${i+1}] $text" }.joinToString("\n\n")
   return "MODEL ANSWER REJECTED — $reason\nSOURCE QUOTATIONS ONLY — these are the supplied excerpts, not a generated or repaired answer. Coverage may be partial.\n\n$quotes"
  }

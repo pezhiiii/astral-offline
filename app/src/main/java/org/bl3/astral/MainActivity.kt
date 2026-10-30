@@ -221,7 +221,10 @@ class MainActivity: Activity() {
      val modelEvidence=modelHits.mapIndexed { i,p -> "[${i+1}] ${p.title} (passage ${p.id})\n${excerpts[i]}" }.joinToString("\n\n")
      val modelSources=modelHits.mapIndexed { i,p -> "[${i+1}] ${excerpts[i]}" }.joinToString("\n\n")
      val allowedRefs=modelHits.indices.joinToString(" ") { "[${it+1}]" }
-     val task=if(isComparison)
+     val partQuestions=ComparisonPlan.questions(q)
+     val task=if(partQuestions.isNotEmpty())
+      "Answer only the current subquestion in ONE complete sentence, at most 30 words. Do not answer the other parts."
+      else if(isComparison)
       "Write exactly three short lines, at most 90 words total. Line one: first subject and requested unit. Line two: second subject and requested unit. Line three: the requested situation, explicitly naming both locations when given."
       else "Write one to three short lines, at most 90 words total."
      val system="SOURCES:\n$modelSources\n\n"+
@@ -239,15 +242,29 @@ class MainActivity: Activity() {
       progressHandler.post(progressTick)
      }
      if(cancelRequested.get()) { ui { output.text="Stopped." };return@execute }
-     val answer=String(Engine.answer(model.path,system,q,256,requestedThreads,modelHits.size),Charsets.UTF_8)
-     val timings=String(Engine.metrics(),Charsets.UTF_8)
+     val requests=partQuestions.ifEmpty { listOf(q) }
+     val drafts=mutableListOf<String>()
+     val reports=mutableListOf<String>()
+     var sectionReason: String?=null
+     for((index,request) in requests.withIndex()) {
+      if(cancelRequested.get()) { ui { output.text="Stopped." };return@execute }
+      ui { status.text="Generating part ${index+1} / ${requests.size} locally…" }
+      val draft=String(Engine.answer(model.path,system,request,if(partQuestions.isEmpty()) 256 else 96,requestedThreads,modelHits.size),Charsets.UTF_8)
+      val report=String(Engine.metrics(),Charsets.UTF_8)
+      drafts.add(draft)
+      reports.add("PART ${index+1} / ${requests.size}\nQuestion: $request\n$report")
+      val reason=CitationPolicy.evidenceRejectionReason(draft,excerpts,!report.contains("Finish: token limit"),request)
+      if(reason!=null && sectionReason==null) sectionReason="Part ${index+1}: $reason"
+     }
+     val answer=drafts.joinToString("\n")
+     val timings=reports.joinToString("\n\n")
      val missingTopics=if(isComparison) SearchPolicy.missingComparisonTopics(q,answer) else emptyList()
      val coverageNote=if(missingTopics.isEmpty()) "" else
       "INCOMPLETE COMPARISON — the generated answer omits: "+missingTopics.joinToString()+
       ". Source quotations are provided below; this is not a repaired model answer.\n\n"
      val completed=!timings.contains("Finish: token limit")
-     val rejected=CitationPolicy.evidenceRejectionReason(answer,excerpts,completed,q)!=null
-     val displayed=CitationPolicy.present(answer,excerpts,completed,q)
+     val rejected=sectionReason!=null || CitationPolicy.evidenceRejectionReason(answer,excerpts,completed,q)!=null
+     val displayed=CitationPolicy.present(answer,excerpts,completed,q,sectionReason)
      val finalCoverage=if(rejected) "" else coverageNote
      ui {
       showingProgress=false
