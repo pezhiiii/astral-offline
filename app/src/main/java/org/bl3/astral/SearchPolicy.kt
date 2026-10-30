@@ -64,7 +64,7 @@ internal object SearchPolicy {
  /** Lexical subject gate, not a claim verifier. Reject incidental mentions and
   * require comparison subjects to occur together in the candidate passage. */
  fun acceptsSubject(question: String, title: String, body: String): Boolean {
-  if(isComparison(question) && comparisonQuote(question,body)==null) return false
+  if(isComparison(question)) return comparisonEvidence(question,body)!=null
   val titleWords=tokens(title.substringBefore(" — "))
   val bodyWords=tokens(body)
   val anchor=subjectAnchor(question) ?: definitionAnchor(question,terms(question))
@@ -86,12 +86,42 @@ internal object SearchPolicy {
 
  fun isComparison(question: String): Boolean = Regex("(?i)\\b(compare|comparison|different|difference|differences|versus|vs)\\b").containsMatchIn(question)
 
+ /** Parse only explicit two-topic comparisons; qualifiers stay in the model question. */
+ fun comparisonTopics(question: String): List<String> {
+  val head=question.substringBefore(',').substringBefore('?').substringBefore('.')
+  val match=Regex("(?i)^\\s*(?:compare\\s+|(?:what\\s+(?:is|are)\\s+)?(?:the\\s+)?differences?\\s+between\\s+)(.+?)\\s+(?:and|versus|vs)\\s+(.+)$").find(head) ?: return emptyList()
+  return match.groupValues.drop(1).map { it.trim().lowercase(Locale.ROOT).removePrefix("the ") }
+   .takeIf { it.size==2 && it.distinct().size==2 && it.all { t -> tokens(t).isNotEmpty() && tokens(t).size<=5 } } ?: emptyList()
+ }
+
+ /** Definitions may come from separate passages. Incidental mentions do not qualify. */
+ fun comparisonDefinitions(question: String, body: String): Map<String,String> {
+  val sentences=DocumentSections.quotationBody(body).split(Regex("(?<=[.!?])\\s+|\\n+"))
+  return comparisonTopics(question).mapNotNull { topic ->
+   val defining=Regex("(?i)^\\s*(?:the\\s+)?"+Regex.escape(topic)+"\\s+(?:is|are|refers\\s+to|means)\\b")
+   sentences.firstOrNull { defining.containsMatchIn(it) && Regex("[.!?]$").containsMatchIn(it.trim()) && it.split(Regex("\\s+")).size<=70 }
+    ?.let { topic to it.trim() }
+  }.toMap()
+ }
+
+ fun comparisonEvidence(question: String, body: String): String? =
+  comparisonQuote(question,body) ?: comparisonDefinitions(question,body).values.distinct().joinToString("\n").ifBlank { null }
+
+ fun comparisonSourceIndices(question: String, bodies: List<String>): List<Int> {
+  val direct=bodies.indexOfFirst { comparisonQuote(question,it)!=null }
+  if(direct>=0) return listOf(direct)
+  val topics=comparisonTopics(question)
+  if(topics.isEmpty()) return emptyList()
+  val indices=topics.map { topic -> bodies.indexOfFirst { topic in comparisonDefinitions(question,it) } }
+  return if(indices.any { it<0 }) emptyList() else indices.distinct()
+ }
+
  /** Return source sentences verbatim; no synthesized comparison claims.
   * All content subject terms must occur in the same contrast sentence.
   * Conservative lexical extraction, not semantic verification. */
  fun comparisonQuote(question: String, body: String): String? {
   if(!isComparison(question)) return null
-  val subjects=terms(question.substringBefore('?')).filter {
+  val subjects=(comparisonTopics(question).takeIf { it.isNotEmpty() }?.flatMap { terms(it) } ?: terms(question.substringBefore('?'))).filter {
    it !in setOf("different","difference","differences","between","versus","vs","comparison")
   }
   if(subjects.isEmpty()) return null

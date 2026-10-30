@@ -197,7 +197,7 @@ class MainActivity: Activity() {
     val isComparison=SearchPolicy.isComparison(q)
     var comparisonPreview=""
     if(isComparison) {
-     val quotes=hits.mapIndexedNotNull { i,p -> SearchPolicy.comparisonQuote(q,p.text)?.let { "[${i+1}] "+it } }
+     val quotes=hits.mapIndexedNotNull { i,p -> SearchPolicy.comparisonEvidence(q,p.text)?.let { "[${i+1}] "+it } }
      val quoteText=quotes.distinct().joinToString("\n\n")
      comparisonPreview="SOURCE QUOTATIONS — preliminary evidence, not a generated answer. Coverage may be partial.\n\n$quoteText"
      if(!model.exists()) {
@@ -215,8 +215,8 @@ class MainActivity: Activity() {
     if(model.exists()) {
      val terms=SearchPolicy.terms(q)
      val isSimpleDefinition=SearchPolicy.definitionAnchor(q,terms)!=null && terms.size==1
-     val modelHits=SearchPolicy.modelSourceIndices(q,hits.map { it.title },if(isSimpleDefinition || isComparison) 1 else 2).map { hits[it] }
-     val excerpts=modelHits.map { if(isComparison) SearchPolicy.comparisonQuote(q,it.text).orEmpty() else if(isSimpleDefinition) SearchPolicy.definitionExcerpt(it.text,terms.first(),90) else SearchPolicy.eventExcerpt(it.text,terms,55) }
+     val modelHits=if(isComparison) hits.take(2) else SearchPolicy.modelSourceIndices(q,hits.map { it.title },if(isSimpleDefinition) 1 else 2).map { hits[it] }
+     val excerpts=modelHits.map { if(isComparison) SearchPolicy.comparisonEvidence(q,it.text).orEmpty() else if(isSimpleDefinition) SearchPolicy.definitionExcerpt(it.text,terms.first(),90) else SearchPolicy.eventExcerpt(it.text,terms,55) }
      if(excerpts.any { it.isBlank() }) { ui { output.text="No complete source sentence fits the evidence budget. View source passages for the full text." };return@execute }
      val modelEvidence=modelHits.mapIndexed { i,p -> "[${i+1}] ${p.title} (passage ${p.id})\n${excerpts[i]}" }.joinToString("\n\n")
      val modelSources=modelHits.mapIndexed { i,p -> "[${i+1}] ${p.title.substringBefore(" — ")}\n${excerpts[i]}" }.joinToString("\n\n")
