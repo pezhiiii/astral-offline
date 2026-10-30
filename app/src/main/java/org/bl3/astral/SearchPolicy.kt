@@ -94,6 +94,18 @@ internal object SearchPolicy {
    .takeIf { it.size==2 && it.distinct().size==2 && it.all { t -> tokens(t).isNotEmpty() && tokens(t).size<=5 } } ?: emptyList()
  }
 
+ /** A lexical omission check only; mentioning both topics does not prove correctness. */
+ fun missingComparisonTopics(question: String, answer: String): List<String> {
+  val content=answer.replace(Regex("(?m)^\\s*[^\\n:]{1,80}:\\s*$"),"")
+  val available=tokens(content)
+  return comparisonTopics(question).filter { topic ->
+   tokens(topic).any { term ->
+    val base=if(term.endsWith("s") && !term.endsWith("ss") && term.length>3) term.dropLast(1) else term
+    term !in available && base !in available && base+"s" !in available
+   }
+  }
+ }
+
  /** Definitions may come from separate passages. Incidental mentions do not qualify. */
  fun comparisonDefinitions(question: String, body: String): Map<String,String> {
   val sentences=DocumentSections.quotationBody(body).split(Regex("(?<=[.!?])\\s+|\\n+"))

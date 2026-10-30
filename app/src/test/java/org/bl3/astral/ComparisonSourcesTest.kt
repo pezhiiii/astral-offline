@@ -26,4 +26,12 @@ class ComparisonSourcesTest {
   val q3="Compare conduction and convection."
   assertEquals(listOf(0,1),SearchPolicy.comparisonSourceIndices(q3,listOf("Conduction is heat transfer through direct interaction.","Convection is heat transfer by fluid motion.")))
  }
+ @Test fun flagsTheObservedOneSidedMassAnswer() {
+  val question="What is the difference between mass and weight? Cite the sources."
+  assertEquals(listOf("weight"),SearchPolicy.missingComparisonTopics(question,"Mass is a property that determines gravitational force. [1]"))
+  assertTrue(SearchPolicy.missingComparisonTopics(question,"Weight is a force, while mass determines its magnitude with gravity. [1]").isEmpty())
+ }
+ @Test fun headingsAloneDoNotCountAsCoverage() {
+  assertEquals(listOf("boiling"),SearchPolicy.missingComparisonTopics(q,"Boiling:\nEvaporation is a surface process. [1]"))
+ }
 }
