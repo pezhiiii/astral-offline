@@ -41,4 +41,16 @@ class ComparisonSourcesTest {
   assertTrue(result.contains("Moon"))
   assertFalse(result.contains("Attribution:"))
  }
+ @Test fun excludesNeighborMentioningOnlyOneComparedSubject() {
+  val q="Compare mass and weight."
+  val body="An object on the Moon has less weight but the same mass. Weight is a force, while mass determines that force with gravity. The mass of a particle is related to its coupling with the Higgs field."
+  val context=SearchPolicy.comparisonContext(q,body)!!
+  assertTrue(context.contains("Moon"))
+  assertFalse(context.contains("Higgs"))
+ }
+ @Test fun topicFilterIsNotSpecificToMass() {
+  val body="Weather differs from climate in duration. Weather is short term, while climate describes long term patterns. Climate is affected by ocean currents."
+  val context=SearchPolicy.comparisonContext("Compare weather and climate.",body)!!
+  assertFalse(context.contains("ocean currents"))
+ }
 }
