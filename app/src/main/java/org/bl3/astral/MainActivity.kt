@@ -222,10 +222,10 @@ class MainActivity: Activity() {
      val modelSources=modelHits.mapIndexed { i,p -> "[${i+1}] ${excerpts[i]}" }.joinToString("\n\n")
      val allowedRefs=modelHits.indices.joinToString(" ") { "[${it+1}]" }
      val task=if(isComparison)
-      "Write exactly three short lines, at most 54 words total. Cover both subjects, requested units and the requested situation."
-      else "Write one to three short lines, at most 54 words total."
+      "Write exactly three short lines, at most 90 words total. Line one: first subject and requested unit. Line two: second subject and requested unit. Line three: the requested situation, explicitly naming both locations when given."
+      else "Write one to three short lines, at most 90 words total."
      val system="SOURCES:\n$modelSources\n\n"+
-      "$task Each line must contain at most 18 words in ONE sentence and end with its supporting citation: $allowedRefs.\n"+
+      "$task Each line must contain at most 32 words in ONE sentence and end with its supporting citation: $allowedRefs.\n"+
       "Format: sentence [source number].\n"+
       "Cite EVERY line separately. Use only the supplied source numbers.\n"+
       "Use only source facts. Keep their scope and conditions; do not turn a specific example into an always/everywhere claim.\n"+
@@ -239,15 +239,15 @@ class MainActivity: Activity() {
       progressHandler.post(progressTick)
      }
      if(cancelRequested.get()) { ui { output.text="Stopped." };return@execute }
-     val answer=String(Engine.answer(model.path,system,q,192,requestedThreads,modelHits.size),Charsets.UTF_8)
+     val answer=String(Engine.answer(model.path,system,q,256,requestedThreads,modelHits.size),Charsets.UTF_8)
      val timings=String(Engine.metrics(),Charsets.UTF_8)
      val missingTopics=if(isComparison) SearchPolicy.missingComparisonTopics(q,answer) else emptyList()
      val coverageNote=if(missingTopics.isEmpty()) "" else
       "INCOMPLETE COMPARISON — the generated answer omits: "+missingTopics.joinToString()+
       ". Source quotations are provided below; this is not a repaired model answer.\n\n"
      val completed=!timings.contains("Finish: token limit")
-     val rejected=CitationPolicy.evidenceRejectionReason(answer,excerpts,completed)!=null
-     val displayed=CitationPolicy.present(answer,excerpts,completed)
+     val rejected=CitationPolicy.evidenceRejectionReason(answer,excerpts,completed,q)!=null
+     val displayed=CitationPolicy.present(answer,excerpts,completed,q)
      val finalCoverage=if(rejected) "" else coverageNote
      ui {
       showingProgress=false

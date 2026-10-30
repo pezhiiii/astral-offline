@@ -147,7 +147,7 @@ extern "C" JNIEXPORT jbyteArray JNICALL Java_org_bl3_astral_Engine_answer(JNIEnv
    if(llama_decode(ctx,batch)!=0) throw std::runtime_error(stopped?"Cancelled":"Prompt evaluation failed");
   }
   cached_prompt=tokens;
-  const auto grammar_text=astral_citation_grammar(source_count);
+  const auto grammar_text=astral_citation_grammar(source_count,std::all_of(user.begin(),user.end(),[](unsigned char c){ return c<128; }));
   auto* grammar=llama_sampler_init_grammar(vocab,grammar_text.c_str(),"root");
   if(!grammar) throw std::runtime_error("Citation grammar failed; generation not run.");
   std::unique_ptr<llama_sampler,decltype(&llama_sampler_free)> sampler(

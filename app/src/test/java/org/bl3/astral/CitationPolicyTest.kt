@@ -2,6 +2,21 @@ package org.bl3.astral
 import org.junit.Assert.*
 import org.junit.Test
 class CitationPolicyTest {
+ private val comparison="Compare mass and weight: what changes when moving from Earth to the Moon? Cite the sources."
+ @Test fun rejectsObservedMixedScriptAndDanglingSentence() {
+  assertNotNull(CitationPolicy.qualityRejectionReason(comparison,"Mass is constant or引力強度 [1].",listOf("Mass is inertia.")))
+  assertNotNull(CitationPolicy.qualityRejectionReason(comparison,"Weight changes with [1].",listOf("Weight is a force.")))
+ }
+ @Test fun rejectsOmittedRequestedLocationButAllowsScopedComparison() {
+  val evidence=listOf("Mass is constant and weight decreases from Earth to the Moon.")
+  assertNotNull(CitationPolicy.qualityRejectionReason(comparison,"Mass is inertia; weight is force [1].",evidence))
+  assertNull(CitationPolicy.qualityRejectionReason(comparison,"From Earth to the Moon, mass stays constant while weight decreases [1].",evidence))
+ }
+ @Test fun preservesNonEnglishQuestionsAndEvidenceNotation() {
+  assertNull(CitationPolicy.qualityRejectionReason("جرم چیست؟","جرم ویژگی جسم است [1].",listOf("جرم")))
+  assertNull(CitationPolicy.qualityRejectionReason("What is alpha?","The symbol is α [1].",listOf("The symbol is α.")))
+ }
+
  @Test fun rejectsTokenLimitEvenWhenLastSentenceHasValidCitation() {
   val answer="Mass is measured in kilograms [1]."
   val evidence=listOf("Mass is measured in kilograms.")
