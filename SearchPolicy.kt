@@ -98,10 +98,13 @@ internal object SearchPolicy {
   val bodyWords=tokens(body)
   val anchor=subjectAnchor(question) ?: definitionAnchor(question,terms(question))
   if(anchor!=null) {
-   if(anchor in titleWords) return true
    val escaped=Regex.escape(anchor)
-   val defining=directDefinition(escaped)
-   return defining.containsMatchIn(body)
+   val direct=directDefinition(escaped)
+   val reverse=Regex(
+    "(?i)\\b(?:called|termed|known as|defined as)\\s+(?:the\\s+)?$escaped\\b"
+   )
+   val clean=DocumentSections.quotationBody(body)
+   return direct.containsMatchIn(clean) || reverse.containsMatchIn(clean)
   }
   val subject=terms(question.substringBefore('?')).filter {
    it !in setOf("different", "difference", "differences", "between", "versus", "vs", "happened", "happen", "won", "winner", "result", "outcome", "contributions", "contribution")
