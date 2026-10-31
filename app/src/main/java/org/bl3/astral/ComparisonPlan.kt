@@ -40,7 +40,7 @@ internal object ComparisonPlan {
  /** Lexical source roles for the current subject; these are not factual validation. */
  fun citationGuidance(question: String, part: Int, excerpts: List<String>): String {
   if(part==2 && excerpts.any { scenarioExcerpt(question,part,it)!=null })
-   return "State only how both subjects change between the two locations, in at most 25 words. Do not repeat definitions or units. End directly with the supporting numeric citation."
+   return "Copy one complete location-bearing source sentence verbatim, then its numeric citation. Preserve every word, including conditions and negation. Do not paraphrase or add commentary. Move the final period after the citation."
   if(definitionDistinction(question,part)) {
    val refs=distinctionDefinitions(question,excerpts).joinToString(" ") { "[${it+1}]" }
    return "Compare the supplied definitions directly. When combining them, cite their source IDs: $refs. Write no prose about evidence or sources."
@@ -87,10 +87,23 @@ internal object ComparisonPlan {
   else null
   return selected?.let { listOf(it) } ?: excerpts.indices.toList()
  }
+ /** Exact quotation gate for location scenarios only; not semantic verification. */
+ fun scenarioQuoteRejection(question: String, part: Int, answer: String, excerpts: List<String>): String? {
+  if(part!=2 || !Regex("(?i)\\bfrom\\s+.+\\s+to\\b").containsMatchIn(question)) return null
+  fun normalize(text: String)=text.trim().trimEnd('.', '!', '?').trim().replace(Regex("\\s+")," ")
+  val plain=normalize(answer.replace(Regex("\\[\\d+\\]"),""))
+  val cited=Regex("\\[(\\d+)\\]").findAll(answer).mapNotNull { it.groupValues[1].toIntOrNull()?.minus(1) }.toSet()
+  val matches=cited.any { index ->
+   val text=excerpts.getOrNull(index) ?: return@any false
+   scenarioExcerpt(question,part,text)?.split(Regex("(?<=[.!?])\\s+|\\n+"))?.any { normalize(it)==plain } == true
+  }
+  return if(matches) null else "Location scenarios require an exact complete sentence from a cited source; paraphrase support has not been verified."
+ }
  /** Per-part lexical coverage, not semantic verification. */
  fun partRejection(question: String, part: Int, answer: String, excerpts: List<String>): String? {
   if(answer.lines().count { it.isNotBlank() }!=1)
    return "Each comparison part must contain exactly one answer line."
+  scenarioQuoteRejection(question,part,answer,excerpts)?.let { return it }
   val plain=answer.replace(Regex("\\[\\d+\\]"),"").trim()
   if(plain.split(Regex("\\s+")).size>40)
    return "Each comparison part must contain at most 40 words."
@@ -130,7 +143,7 @@ internal object ComparisonPlan {
    (if(Regex("(?i)\\b(means?|define|definition)\\b").containsMatchIn(question)) "What does $topic mean" else "What does $topic measure")+(if(units) ", and what is its SI unit" else "")+"? Answer only this part in one complete sentence, using the supplied sources and citations."
   }.toMutableList()
   val scenario=Regex("(?i)from\\s+(.+?)\\s+to\\s+(?:the\\s+)?([\\p{L}]+)").find(question.substringBefore('?'))
-  if(scenario!=null) tasks.add("What happens to ${topics[0]} and ${topics[1]} when moving from ${scenario.groupValues[1]} to ${scenario.groupValues[2]}? Name both locations and explain the changes in one complete sentence, using the supplied sources and citations. Use at most 25 words. Do not repeat definitions or units.")
+  if(scenario!=null) tasks.add("What happens to ${topics[0]} and ${topics[1]} when moving from ${scenario.groupValues[1]} to ${scenario.groupValues[2]}? Name both locations and explain the changes in one complete sentence, using the supplied sources and citations. Quote one complete supplied sentence verbatim with its citation; do not paraphrase.")
   if(scenario==null) {
    if(Regex("(?i)\\bdirection\\b").containsMatchIn(question))
     tasks.add("How does direction distinguish ${topics[0]} and ${topics[1]}? Name both subjects and explain only the direction distinction in one short sentence with citations.")

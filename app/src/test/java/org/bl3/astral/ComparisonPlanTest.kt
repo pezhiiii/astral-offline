@@ -2,14 +2,22 @@ package org.bl3.astral
 import org.junit.Assert.*
 import org.junit.Test
 class ComparisonPlanTest {
+ @Test fun scenarioRejectsUnsupportedParaphraseAndWrongCitation() {
+  val q="Compare mass and weight: what are their SI units, and which changes from Earth to the Moon?"
+  val quote="An object on the Moon would weigh less than it does on Earth because of the lower gravity, but it would still have the same mass."
+  assertNull(ComparisonPlan.scenarioQuoteRejection(q,2,quote.dropLast(1)+" [1].",listOf(quote)))
+  assertNotNull(ComparisonPlan.scenarioQuoteRejection(q,2,"On Earth an object has higher mass and weight; on the Moon it has the same mass [1].",listOf(quote)))
+  assertNotNull(ComparisonPlan.scenarioQuoteRejection(q,2,quote.dropLast(1)+" [2].",listOf(quote,"Unrelated source.")))
+  assertNull(ComparisonPlan.scenarioQuoteRejection(q,0,"Mass measures inertia [1].",listOf(quote)))
+ }
  @Test fun scenarioEvidenceOmitsDefinitionsAndUnits() {
   val q="Compare mass and weight: what are their SI units, and which changes from Earth to the Moon?"
   val change="An object on the Moon would weigh less than it does on Earth because of the lower gravity, but it would still have the same mass."
   val text="Mass is a measure of inertia. The SI unit of mass is the kilogram. $change"
   assertEquals(change,ComparisonPlan.partExcerpt(q,2,text))
   assertEquals("Mass is a measure of inertia.",ComparisonPlan.partExcerpt(q,2,"Mass is a measure of inertia."))
-  assertTrue(ComparisonPlan.questions(q)[2].contains("Do not repeat definitions or units"))
-  assertTrue(ComparisonPlan.citationGuidance(q,2,listOf(text)).contains("25 words"))
+  assertTrue(ComparisonPlan.questions(q)[2].contains("do not paraphrase"))
+  assertTrue(ComparisonPlan.citationGuidance(q,2,listOf(text)).contains("verbatim"))
  }
  @Test fun separatesSubjectsUnitsAndScenarioWithoutInventingAnswers() {
   val tasks=ComparisonPlan.questions("Compare mass and weight: what does each measure, what are their SI units, and which changes when moving from Earth to the Moon? Cite the sources.")
