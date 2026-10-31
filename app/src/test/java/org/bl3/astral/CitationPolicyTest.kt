@@ -2,6 +2,17 @@ package org.bl3.astral
 import org.junit.Assert.*
 import org.junit.Test
 class CitationPolicyTest {
+ @Test fun exactSourceQuoteSuppliesLocationsWithoutMaskingModelErrors() {
+  val q="Compare mass and weight: what are their SI units, and which changes from Earth to the Moon?"
+  val quote="An object on the Moon would weigh less than it does on Earth, but it would have the same mass."
+  val sources=listOf("Mass measures inertia. The SI unit of mass is the kilogram. $quote", "Weight is force. The SI unit of weight is the newton.")
+  val answer="Mass measures inertia and its SI unit is the kilogram [1].\nWeight is force and its SI unit is the newton [2]."
+  assertNotNull(CitationPolicy.evidenceRejectionReason(answer,sources,true,q))
+  assertNull(CitationPolicy.evidenceRejectionReason(answer,sources,true,q,listOf("[1] $quote")))
+  assertNotNull(CitationPolicy.evidenceRejectionReason(answer,sources,true,q,listOf("[2] $quote")))
+  assertNotNull(CitationPolicy.evidenceRejectionReason(answer.replace("newton","joule"),sources,true,q,listOf("[1] $quote")))
+  assertTrue(CitationPolicy.present(answer,sources,true,q,null,listOf("[1] $quote")).contains(answer))
+ }
  private val unitQuestion="Compare mass and weight: what are their SI units?"
  private val unitEvidence=listOf("The SI unit of mass is the kilogram (kg).", "The unit of weight in SI is the newton.")
  @Test fun rejectsDanglingEndingDespitePunctuationAndReferences() {

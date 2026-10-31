@@ -37,11 +37,11 @@ internal object CitationPolicy {
   val tail=answer.substring(start).trim()
   return tail.any { it.isLetter() } && !Regex("\\[\\d+\\]\\s*$").containsMatchIn(tail)
  }
- fun evidenceRejectionReason(answer: String, excerpts: List<String>, completed: Boolean = true, question: String = ""): String? {
+ fun evidenceRejectionReason(answer: String, excerpts: List<String>, completed: Boolean = true, question: String = "", supplementaryQuotes: List<String> = emptyList()): String? {
   if(!completed) return "Generation reached the token limit; the draft is incomplete."
   rejectionReason(answer,excerpts.size)?.let { return it }
   if(hasUncitedSentence(answer)) return "Each answer sentence must have an adjacent numeric source reference."
-  qualityRejectionReason(question,answer,excerpts)?.let { return it }
+  qualityRejectionReason(question,answer,excerpts,supplementaryQuotes)?.let { return it }
   if(Regex("(?i)\\bunits?\\b").containsMatchIn(question)) unitCitationRejection(answer,excerpts)?.let { return it }
   val plain=answer.replace(Regex("\\[\\d+\\]"),"")
   val evidence=excerpts.joinToString(" ")
@@ -90,7 +90,7 @@ internal object CitationPolicy {
   return null
  }
  /** Observable output defects only; this is not an entailment checker. */
- fun qualityRejectionReason(question: String, answer: String, excerpts: List<String>): String? {
+ fun qualityRejectionReason(question: String, answer: String, excerpts: List<String>, supplementaryQuotes: List<String> = emptyList()): String? {
   if(Regex("(\\[\\d+\\])(?:\\s*\\1)+").containsMatchIn(answer))
    return "The answer repeats an adjacent source reference."
   if(question.isBlank()) return null
@@ -118,14 +118,20 @@ internal object CitationPolicy {
    val scenario=Regex("(?i)from\\s+(.+?)\\s+to\\s+(?:the\\s+)?([\\p{L}]+)").find(question.substringBefore('?'))
    if(scenario!=null) {
     val places=SearchPolicy.terms(scenario.groupValues[1])+SearchPolicy.terms(scenario.groupValues[2])
-    val words=Regex("[\\p{L}]+").findAll(answer.lowercase()).map { it.value }.toSet()
+    // Only exact text from its declared source may supplement location coverage.
+    val quoted=supplementaryQuotes.mapNotNull { quote ->
+     val match=Regex("^\\[(\\d+)\\]\\s+([\\s\\S]+)$").matchEntire(quote.trim()) ?: return@mapNotNull null
+     val source=excerpts.getOrNull((match.groupValues[1].toIntOrNull() ?: 0)-1) ?: return@mapNotNull null
+     match.groupValues[2].takeIf { it.isNotBlank() && source.contains(it) }
+    }.joinToString(" ")
+    val words=Regex("[\\p{L}]+").findAll((answer+" "+quoted).lowercase()).map { it.value }.toSet()
     if(places.any { it !in words }) return "The answer omits a location in the requested comparison."
    }
   }
   return null
  }
- fun present(answer: String, excerpts: List<String>, completed: Boolean = true, question: String = "", extraRejection: String? = null): String {
-  val reason=extraRejection ?: evidenceRejectionReason(answer,excerpts,completed,question) ?: return "MODEL ANSWER — source IDs checked; factual support has not been verified.\n\n$answer"
+ fun present(answer: String, excerpts: List<String>, completed: Boolean = true, question: String = "", extraRejection: String? = null, supplementaryQuotes: List<String> = emptyList()): String {
+  val reason=extraRejection ?: evidenceRejectionReason(answer,excerpts,completed,question,supplementaryQuotes) ?: return "MODEL ANSWER — source IDs checked; factual support has not been verified.\n\n$answer"
   val quotes=excerpts.mapIndexed { i,text -> "[${i+1}] $text" }.joinToString("\n\n")
   return "MODEL ANSWER REJECTED — $reason\nSOURCE QUOTATIONS ONLY — these are the supplied excerpts, not a generated or repaired answer. Coverage may be partial.\n\n$quotes"
  }

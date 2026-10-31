@@ -287,9 +287,10 @@ class MainActivity: Activity() {
      val coverageNote=if(missingTopics.isEmpty()) "" else
       "INCOMPLETE COMPARISON — the generated answer omits: "+missingTopics.joinToString()+
       ". Source quotations are provided below; this is not a repaired model answer.\n\n"
+     val coverageQuotes=directQuotes.map { it.substringAfter("\n") }
      val completed=!timings.contains("Finish: token limit")
-     val rejected=sectionReason!=null || CitationPolicy.evidenceRejectionReason(answer,excerpts,completed,q)!=null
-     val displayed=CitationPolicy.present(answer,excerpts,completed,q,sectionReason)+
+     val rejected=sectionReason!=null || CitationPolicy.evidenceRejectionReason(answer,excerpts,completed,q,coverageQuotes)!=null
+     val displayed=CitationPolicy.present(answer,excerpts,completed,q,sectionReason,coverageQuotes)+
       if(directQuotes.isEmpty()) "" else "\n\n"+directQuotes.joinToString("\n\n")
      val finalCoverage=if(rejected) "" else coverageNote
      ui {
