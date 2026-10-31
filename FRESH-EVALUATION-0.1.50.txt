@@ -1,0 +1,9 @@
+Fresh evaluation — keep sources unchanged and record failures too.
+
+1. What is gravity? Cite the source.
+2. How are mitosis and meiosis different? Cite the sources.
+3. What is the difference between weather and climate? Cite the sources.
+4. Who was Marie Curie? Cite evidence for two contributions.
+5. What happened in the 1904 German football championship? Cite the source.
+
+For each: save full answer, retrieved passage IDs, elapsed time, and whether model ran. Do not treat a partial quotation as a complete answer. Check answer coverage and support independently. No aggregate bounty score can be inferred from this small set.

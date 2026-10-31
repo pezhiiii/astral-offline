@@ -1,0 +1,11 @@
+id,type,question,corpus_evidence_present,answer,supporting_passage_ids,quality_0_to_4,unsupported_claims,first_token_seconds,total_seconds,cached_input_tokens,evaluated_input_tokens,cold_or_warm,notes
+1,explanation,Why can an object have the same mass on Earth and the Moon but a different weight?,,,,,,,,,,,
+2,comparison,"Compare evaporation and boiling, including when each can occur.",,,,,,,,,,,
+3,synthesis,Explain how photosynthesis and cellular respiration connect matter and energy flows.,,,,,,,,,,,
+4,reasoning,A sealed container holds a growing plant. Does plant growth alone show that total mass inside increased? Explain assumptions.,,,,,,,,,,,
+5,comparison,How do an antibiotic and a vaccine differ in purpose and mechanism?,,,,,,,,,,,
+6,reasoning,Can a correlation between ice cream sales and drowning establish causation? Explain an alternative.,,,,,,,,,,,
+7,synthesis,How do plate motion and the rock cycle interact?,,,,,,,,,,,
+8,explanation,Why does increasing temperature often change reaction rate?,,,,,,,,,,,
+9,calculation,"A 2 kg object has a net force of 6 N. What acceleration follows, and what assumptions are needed?",,,,,,,,,,,
+10,missing evidence,What did an unpublished experiment performed yesterday conclude?,,,,,,,,,,,

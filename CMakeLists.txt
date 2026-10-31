@@ -1,0 +1,20 @@
+cmake_minimum_required(VERSION 3.22.1)
+# Keep the installable debug APK, but optimize the CPU inference library.
+set(CMAKE_BUILD_TYPE Release CACHE STRING "Native inference build type" FORCE)
+project(astral LANGUAGES C CXX)
+set(CMAKE_CXX_STANDARD 17)
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+set(LLAMA_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(LLAMA_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(LLAMA_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
+set(LLAMA_CURL OFF CACHE BOOL "" FORCE)
+set(LLAMA_OPENSSL OFF CACHE BOOL "" FORCE)
+set(GGML_OPENMP OFF CACHE BOOL "" FORCE)
+set(GGML_NATIVE OFF CACHE BOOL "" FORCE)
+# Optional ARM kernels; upstream detects supported CPU features at runtime.
+# Build with -DASTRAL_KLEIDIAI=OFF to compare against the previous CPU path.
+option(ASTRAL_KLEIDIAI "Enable upstream KleidiAI ARM kernels" ON)
+set(GGML_CPU_KLEIDIAI ${ASTRAL_KLEIDIAI} CACHE BOOL "" FORCE)
+add_subdirectory(../../../../vendor/llama.cpp llama-build)
+add_library(astral SHARED engine.cpp)
+target_link_libraries(astral PRIVATE llama android log)
