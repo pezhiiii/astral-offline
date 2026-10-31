@@ -144,10 +144,12 @@ internal object SearchPolicy {
    val domain="(?:classical\\s+)?(?:thermodynamics|kinetic\\s+theory|physics|mechanics|chemistry|biology|science|engineering)"
    val qualifier="(?:in\\s+"+domain+"(?:\\s+and\\s+"+domain+")?\\s*,\\s*)?"
    val defining=Regex("(?i)^\\s*"+qualifier+"(?:the\\s+)?"+Regex.escape(topic)+"(?:\\s+of\\s+(?:an?|the)\\s+(?:object|body|particle|system))?\\s+(?:is|are|refers\\s+to|means|can\\s+be\\s+(?:experimentally\\s+)?(?:defined|understood))\\b")
+   // Reverse naming definitions: require a bounded descriptive noun phrase.
+   val named=Regex("(?i)^\\s*(?:the|a|an)\\s+(?=[^.!?;:]{0,180}\\b(?:magnitude|value|rate|ratio|amount|quantity|measure|distance|change|resistance)\\b)[^.!?;:]{1,180}?\\s+is\\s+(?:called|defined\\s+as|known\\s+as)\\s+"+Regex.escape(topic)+"(?=\\s*[,.;!?])")
    sentences.sortedByDescending { sentence ->
     (if(Regex("(?i)\\b(measure|measures|resistance|inertia)\\b").containsMatchIn(sentence)) 4 else 0) +
     (if(Regex("(?i)\\b(experimentally|defined)\\b").containsMatchIn(sentence)) 2 else 0)
-   }.firstOrNull { defining.containsMatchIn(it) && !Regex("(?i)\\b(?:is|are)\\s+(?:very\\s+)?(?:important|useful|used|common|widely)\\b").containsMatchIn(it) && Regex("[.!?]$").containsMatchIn(it.trim()) && it.split(Regex("\\s+")).size<=70 }
+   }.firstOrNull { (defining.containsMatchIn(it) || named.containsMatchIn(it)) && !Regex("(?i)\\b(?:is|are)\\s+(?:very\\s+)?(?:important|useful|used|common|widely)\\b").containsMatchIn(it) && Regex("[.!?]$").containsMatchIn(it.trim()) && it.split(Regex("\\s+")).size<=70 }
     ?.let { topic to it.trim() }
   }.toMap()
  }

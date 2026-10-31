@@ -4,6 +4,15 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class SearchPolicyTest {
+ @Test fun reverseNamingDefinitionPreservesWholeSentence() {
+  val q="Compare speed and velocity: what does each mean, what are their SI units, and how does direction distinguish them?"
+  val text="The scalar absolute value (magnitude) of velocity is called speed, a quantity that is measured in metres per second (m/s) in the SI (International System of Units) system."
+  assertEquals(text,SearchPolicy.comparisonDefinitions(q,text)["speed"])
+  assertFalse(SearchPolicy.comparisonDefinitions(q,"Yesterday a driver is called speed.").containsKey("speed"))
+  assertFalse(SearchPolicy.comparisonDefinitions(q,"The driver is called speed.").containsKey("speed"))
+  assertFalse(SearchPolicy.comparisonDefinitions(q,"The magnitude of velocity is called speedster.").containsKey("speed"))
+  assertFalse(SearchPolicy.comparisonDefinitions(q,"The magnitude of velocity is called speed").containsKey("speed"))
+ }
  @Test fun awardWordingRetainsWinnerInEventExcerpt() {
   val q="What happened in the 1903 German football championship?"
   val text="The 1903 German football championship was the first tournament. "+
