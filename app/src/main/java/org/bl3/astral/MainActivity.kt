@@ -214,9 +214,10 @@ class MainActivity: Activity() {
     ui { status.text="Evidence found · generating locally…";output.text=if(isComparison) comparisonPreview+"\n\nGenerating locally…" else sources }
     if(model.exists()) {
      val terms=SearchPolicy.terms(q)
-     val isSimpleDefinition=SearchPolicy.definitionAnchor(q,terms)!=null && terms.size==1
+     val definitionSubject=SearchPolicy.definitionAnchor(q,terms)
+     val isSimpleDefinition=definitionSubject!=null
      val modelHits=if(isComparison) hits.take(4) else SearchPolicy.modelSourceIndices(q,hits.map { it.title },if(isSimpleDefinition) 1 else 2).map { hits[it] }
-     val excerpts=modelHits.map { if(isComparison) SearchPolicy.comparisonModelContext(q,it.text).orEmpty() else if(isSimpleDefinition) SearchPolicy.definitionExcerpt(it.text,terms.first(),90) else SearchPolicy.unitExcerpt(q,it.text) ?: SearchPolicy.explanationExcerpt(q,it.text) ?: SearchPolicy.eventExcerpt(it.text,terms,55) }
+     val excerpts=modelHits.map { if(isComparison) SearchPolicy.comparisonModelContext(q,it.text).orEmpty() else if(isSimpleDefinition) SearchPolicy.definitionExcerpt(it.text,definitionSubject!!,90) else SearchPolicy.unitExcerpt(q,it.text) ?: SearchPolicy.explanationExcerpt(q,it.text) ?: SearchPolicy.eventExcerpt(it.text,terms,55) }
      if(excerpts.any { it.isBlank() }) { ui { output.text="No complete source sentence fits the evidence budget. View source passages for the full text." };return@execute }
      val missingEvidence=if(isComparison) SearchPolicy.missingComparisonEvidence(q,excerpts) else emptyList()
      if(missingEvidence.isNotEmpty()) {
@@ -232,7 +233,7 @@ class MainActivity: Activity() {
       "Answer only the current subquestion in ONE complete sentence, at most 30 words. Do not answer the other parts."
       else if(isComparison)
       "Write exactly three short lines, at most 90 words total. Line one: first subject and requested unit. Line two: second subject and requested unit. Line three: the requested situation, explicitly naming both locations when given."
-      else if(SearchPolicy.unitTopics(q).isNotEmpty())
+      else if(!isSimpleDefinition && SearchPolicy.unitTopics(q).isNotEmpty())
       "Answer only the requested SI unit in ONE complete sentence, at most 20 words. Omit scale history, applications and other units. Write the unit name directly."
       else "Write one to three short lines, at most 90 words total."
      val system="SOURCES:\n$modelSources\n\n"+

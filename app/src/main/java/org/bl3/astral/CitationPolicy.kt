@@ -42,6 +42,21 @@ internal object CitationPolicy {
   rejectionReason(answer,excerpts.size)?.let { return it }
   if(hasUncitedSentence(answer)) return "Each answer sentence must have an adjacent numeric source reference."
   qualityRejectionReason(question,answer,excerpts,supplementaryQuotes)?.let { return it }
+  // Coverage heuristic: a requested historical detail may not silently disappear.
+  val historyRequested=Regex("(?i)\\b(?:who|person|people)\\b").containsMatchIn(question) &&
+   Regex("(?i)\\b(?:first|invented|discovered|measured)\\b").containsMatchIn(question)
+  if(historyRequested) {
+   val acknowledgesMissing=Regex("(?i)\\b(?:not provided|does not provide|do not provide|not stated|not named|not specified|not available|insufficient|unknown|no person|no name|cannot determine)\\b").containsMatchIn(answer)
+   val historyAnswered=Regex("(?i)\\b(?:first|invented|discovered|measured)\\b").containsMatchIn(answer)
+   if(!acknowledgesMissing && !historyAnswered)
+    return "The draft omits the requested historical detail without acknowledging missing evidence."
+  }
+  // Reject an explicit vector-to-magnitude definition; this is a narrow lexical guard.
+  val anchor=SearchPolicy.definitionAnchor(question,SearchPolicy.terms(question))
+  if(anchor!=null && Regex("(?i)\\b"+Regex.escape(anchor)+"\\s+is\\s+(?:a\\s+)?vector\\b").containsMatchIn(excerpts.joinToString(" ")) &&
+     Regex("(?i)\\bdefined as (?:the )?(?:scalar )?(?:absolute value|magnitude)\\b").containsMatchIn(answer))
+   return "The draft appears to equate a vector with its scalar magnitude."
+
   if(Regex("(?i)\\bunits?\\b").containsMatchIn(question)) unitCitationRejection(answer,excerpts)?.let { return it }
   val plain=answer.replace(Regex("\\[\\d+\\]"),"")
   val evidence=excerpts.joinToString(" ")

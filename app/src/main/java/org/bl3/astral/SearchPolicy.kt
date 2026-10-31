@@ -104,7 +104,13 @@ internal object SearchPolicy {
     "(?i)\\b(?:called|termed|known as|defined as)\\s+(?:the\\s+)?$escaped\\b"
    )
    val clean=DocumentSections.quotationBody(body)
-   return direct.containsMatchIn(clean) || reverse.containsMatchIn(clean)
+   val complete=clean.split(Regex("(?<=[.!?])\\s+|\\n+")).map { it.trim() }
+   return complete.any { sentence ->
+    Regex("[.!?]$").containsMatchIn(sentence) &&
+     (reverse.containsMatchIn(sentence) ||
+      (direct.containsMatchIn(sentence) &&
+       Regex("(?i)\\b(?:quantity|measure|measurement|rate|defined|refers|means|consists|property|process|system|organism|substance|device|person|community|energy|force|resistance|vector|scalar)\\b").containsMatchIn(sentence)))
+   }
   }
   val subject=terms(question.substringBefore('?')).filter {
    it !in setOf("different", "difference", "differences", "between", "versus", "vs", "happened", "happen", "won", "winner", "result", "outcome", "contributions", "contribution")
@@ -412,6 +418,13 @@ internal object SearchPolicy {
    if(used+count<=maxWords && tokens(item.value).contains(anchor)) {
     selected.add(item);used+=count
    }
+  }
+  // Keep complete unit sentences from this passage with the definition.
+  for(item in sentences.withIndex()) {
+   if(item in selected) continue
+   val count=item.value.split(Regex("\\s+")).size
+   if(Regex("(?i)\\b(?:SI|unit|units|kilogram|newton|metres|meters)\\b").containsMatchIn(item.value) &&
+      used+count<=maxWords) { selected.add(item);used+=count }
   }
   return selected.sortedBy { it.index }.joinToString("\n") { it.value }
  }
