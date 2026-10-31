@@ -50,4 +50,20 @@ class RetrievalRegressionTest {
    "Speed is the magnitude of velocity, measured in metres per second [1].",
    evidence,true,"What is speed?"))
  }
+ @Test fun checksCitedTimeUnitPowers() {
+  val evidence=listOf("The SI unit for acceleration is metre per second squared (m/s2).", "A different quantity uses metre per second cubed.")
+  for(unit in listOf("m/s3", "m/s³", "m/s^3", "m·s⁻³", "metres per second cubed")) {
+   assertNotNull(unit,CitationPolicy.unitCitationRejection("Acceleration uses $unit [1].",evidence))
+  }
+  for(unit in listOf("m/s2", "m/s²", "m/s^2", "m·s⁻²", "metres per second squared")) {
+   assertNull(unit,CitationPolicy.unitCitationRejection("Acceleration uses $unit [1].",evidence))
+  }
+  assertNull(CitationPolicy.unitCitationRejection("A quantity uses metre per second cubed [2].",evidence))
+  assertNotNull(CitationPolicy.evidenceRejectionReason("Acceleration uses metre per second cubed [1].",evidence,true,"What is acceleration?"))
+ }
+ @Test fun limitsDefinitionAndUnitLength() {
+  val draft="Acceleration is a vector quantity "+List(45) { "changing" }.joinToString(" ")+" [1]."
+  assertNotNull(CitationPolicy.evidenceRejectionReason(draft,listOf("Acceleration is a vector quantity."),true,
+   "What is acceleration? Give its definition and SI unit."))
+ }
 }

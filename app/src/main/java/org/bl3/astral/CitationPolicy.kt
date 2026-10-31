@@ -57,7 +57,7 @@ internal object CitationPolicy {
      Regex("(?i)\\bdefined as (?:the )?(?:scalar )?(?:absolute value|magnitude)\\b").containsMatchIn(answer))
    return "The draft appears to equate a vector with its scalar magnitude."
 
-  if(Regex("(?i)\\bunits?\\b").containsMatchIn(question)) unitCitationRejection(answer,excerpts)?.let { return it }
+  unitCitationRejection(answer,excerpts)?.let { return it }
   val plain=answer.replace(Regex("\\[\\d+\\]"),"")
   val evidence=excerpts.joinToString(" ")
   val number=Regex("(?<![\\p{L}\\p{N}])\\d+(?:[.,]\\d+)*%?")
@@ -85,6 +85,18 @@ internal object CitationPolicy {
   }
   return null
  }
+ /** Lexical support for common metre/second powers only, not dimensional entailment. */
+ private fun timeUnitPowers(text: String): Set<String> {
+  val normalized=text.lowercase(java.util.Locale.ROOT)
+   .replace("²","2").replace("³","3").replace("⁻","-").replace("−","-")
+  val symbolic=Regex("\\bm\\s*(?:/\\s*s\\s*(?:\\^\\s*)?([123])?|[·⋅.]\\s*s\\s*(?:\\^\\s*)?-\\s*([123]))(?![\\p{L}\\p{N}])")
+  val named=Regex("\\b(?:metres?|meters?)\\s+per\\s+second(?:\\s+(squared|cubed))?\\b")
+  return symbolic.findAll(normalized).map {
+   it.groupValues[1].ifBlank { it.groupValues[2].ifBlank { "1" } }
+  }.toSet()+named.findAll(normalized).map {
+   when(it.groupValues[1]) { "squared" -> "2"; "cubed" -> "3"; else -> "1" }
+  }.toSet()
+ }
  fun unitCitationRejection(answer: String, excerpts: List<String>): String? {
   for(line in answer.lines().filter { it.isNotBlank() }) {
    val ids=Regex("\\[(\\d+)\\]").findAll(line).mapNotNull { it.groupValues[1].toIntOrNull() }.toList()
@@ -92,11 +104,8 @@ internal object CitationPolicy {
    val text=line.replace(Regex("\\[\\d+\\]"),"")
    if(Regex("\\b[A-Za-z]+\\s*/\\s*[A-Za-z]+\\s*(?:\\^\\s*)?[-−⁻]\\s*[0-9¹²³]+").containsMatchIn(text))
     return "The answer uses ambiguous slash/negative-exponent unit notation; use a full unit name."
-   // Conservative lexical support for a common squared-time compound unit.
-   // No dimensional correctness or quantity association is inferred.
-   val squared=Regex("(?i)(?:\\bm\\s*/\\s*s\\s*(?:\\^\\s*2|2|²)|\\b(?:metres?|meters?) per second squared\\b)")
-   if(squared.containsMatchIn(text) && !squared.containsMatchIn(cited))
-    return "The cited source does not supply the stated squared-time unit."
+   if((timeUnitPowers(text)-timeUnitPowers(cited)).isNotEmpty())
+    return "The cited source does not supply the stated metre/second unit power."
    for((name,pattern) in unitPatterns) {
     if(pattern.containsMatchIn(text) && !pattern.containsMatchIn(cited))
      return "A cited source does not contain the stated unit ($name) on this answer line."
@@ -113,6 +122,11 @@ internal object CitationPolicy {
    answer.filter { it.isLetter() && it.code>=128 }.any { it !in excerpts.joinToString(" ") })
    return "The English answer introduced letters absent from the question and evidence."
   val clean=answer.replace(Regex("\\[\\d+\\]"),"")
+  val definitionSubject=SearchPolicy.definitionAnchor(question,SearchPolicy.terms(question))
+  val definitionAndUnit=definitionSubject!=null && Regex("(?i)\\bunits?\\b").containsMatchIn(question) &&
+   !Regex("(?i)\\b(?:who|person|first|history|why)\\b").containsMatchIn(question)
+  if(definitionAndUnit && clean.trim().split(Regex("\\s+")).size>40)
+   return "A definition-and-unit answer must be at most 40 words."
   // Reject dangling introductions before a citation; do not repair the draft.
   if(Regex("[:;،,]\\s*[.!?]?\\s*(?:$|\\n)").containsMatchIn(clean))
    return "The draft ends a line with an unfinished clause or example introduction."

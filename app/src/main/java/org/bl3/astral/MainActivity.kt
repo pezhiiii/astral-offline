@@ -235,6 +235,8 @@ class MainActivity: Activity() {
       "Write exactly three short lines, at most 90 words total. Line one: first subject and requested unit. Line two: second subject and requested unit. Line three: the requested situation, explicitly naming both locations when given."
       else if(!isSimpleDefinition && SearchPolicy.unitTopics(q).isNotEmpty())
       "Answer only the requested SI unit in ONE complete sentence, at most 20 words. Omit scale history, applications and other units. Write the unit name directly."
+      else if(isSimpleDefinition)
+      "Give only the requested definition and unit, when requested, in at most TWO complete sentences and 40 words total. Use full unit names exactly as supplied. Omit examples, subtypes and applications."
       else "Write one to three short lines, at most 90 words total."
      val system="SOURCES:\n$modelSources\n\n"+
       "$task Each line must contain at most 32 words in ONE sentence and end with its supporting citation: $allowedRefs.\n"+
