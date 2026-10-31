@@ -29,4 +29,14 @@ class RetrievalRegressionTest {
    "Velocity is defined as the magnitude of the velocity vector [1].",
    listOf("Velocity is a vector quantity."),true,"What is velocity?"))
  }
+ @Test fun rejectsDanglingExample() {
+  val evidence=listOf("Speed is the magnitude of velocity, measured in metres per second.")
+  for(draft in listOf("Speed is measured in metres per second, such as in the statement: [1].",
+   "Speed is a scalar quantity; [1].", "Speed is a scalar quantity, for example [1].")) {
+   assertNotNull(CitationPolicy.evidenceRejectionReason(draft,evidence,true,"What is speed?"))
+  }
+  assertNull(CitationPolicy.evidenceRejectionReason(
+   "Speed is the magnitude of velocity, measured in metres per second [1].",
+   evidence,true,"What is speed?"))
+ }
 }

@@ -113,6 +113,12 @@ internal object CitationPolicy {
    answer.filter { it.isLetter() && it.code>=128 }.any { it !in excerpts.joinToString(" ") })
    return "The English answer introduced letters absent from the question and evidence."
   val clean=answer.replace(Regex("\\[\\d+\\]"),"")
+  // Reject dangling introductions before a citation; do not repair the draft.
+  if(Regex("[:;،,]\\s*[.!?]?\\s*(?:$|\\n)").containsMatchIn(clean))
+   return "The draft ends a line with an unfinished clause or example introduction."
+  if(Regex("(?i)\\b(?:such as|for example|for instance|including|namely|as follows|in the statement)\\s*[:;,]?\\s*[.!?]?\\s*(?:$|\\n)").containsMatchIn(clean))
+   return "The draft introduces an example or list but does not supply it."
+
   if(Regex("(?i)\\b(with|of|to|from|because|and|or|while|than|due|in|on|at|by|for|is|are|the|an|a|being)\\s*[,;:]*\\s*[.!?](?:\\s|$)").containsMatchIn(clean))
    return "A sentence ends with an unfinished phrase."
   if(SearchPolicy.unitTopics(question).isNotEmpty() && clean.trim().split(Regex("\\s+")).size>32)
