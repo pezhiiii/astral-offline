@@ -9,6 +9,17 @@ class RetrievalRegressionTest {
   assertFalse(SearchPolicy.acceptsSubject(q,"Cartridge","Velocity is close to another cartridge but uses less powder."))
   assertFalse(SearchPolicy.acceptsSubject("What is speed?","Speed skating","The race was held in February."))
  }
+ @Test fun acceptsQualifiedScientificDefinition() {
+  val body="In physics, acceleration is a measure of how velocity changes. The SI unit for acceleration is metre per second squared."
+  for(q in listOf("What is acceleration?", "What is acceleration? Give its definition and SI unit. Cite the source.")) {
+   assertTrue(SearchPolicy.acceptsSubject(q,"Acceleration",body))
+   assertEquals(listOf("title:acceleration","body:acceleration"),SearchPolicy.candidateQueries(q))
+  }
+  assertTrue(SearchPolicy.definitionRank("acceleration",body)>0)
+  assertTrue(SearchPolicy.definitionExcerpt(body,"acceleration").contains("metre per second squared"))
+  assertFalse(SearchPolicy.acceptsSubject("What is acceleration?","Acceleration",
+   "In physics, acceleration is close to another value."))
+ }
  @Test fun acceptsReverseDefinition() {
   assertTrue(SearchPolicy.acceptsSubject("What is speed?","Velocity",
    "The scalar magnitude of velocity is called speed, measured in metres per second."))

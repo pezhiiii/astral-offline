@@ -481,7 +481,7 @@ internal object SearchPolicy {
  /** Require the requested term to lead a sentence, rather than be the
   * tail of a different subject such as "conservation of mass". */
  private fun directDefinition(escaped: String): Regex = Regex(
-  "(?i)(?:^|[.!?]\\s+|\\n+|={2,}\\s*)(?:the\\s+)?$escaped\\s+(?:is|are|was|were|refers to|means|consists of)\\b"
+  "(?i)(?:^|[.!?]\\s+|\\n+|={2,}\\s*)(?:in\\s+(?:physics|mechanics|chemistry|biology|science|engineering|thermodynamics)\\s*,\\s*)?(?:the\\s+)?$escaped\\s+(?:is|are|was|were|refers to|means|consists of)\\b"
  )
 
  fun definitionRank(anchor: String?, body: String): Int {
