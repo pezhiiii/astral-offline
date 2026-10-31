@@ -11,8 +11,21 @@ internal object ComparisonPlan {
    excerpts.indices.filter { SearchPolicy.comparisonDefinitions(question,excerpts[it]).containsKey(topic) }
     .maxByOrNull { SearchPolicy.comparisonDefinitions(question,excerpts[it])[topic]?.length ?: 0 }
   }.distinct()
+ /** Select complete location-bearing sentences without changing source wording. */
+ private fun scenarioExcerpt(question: String, part: Int, text: String): String? {
+  if(part!=2 || SearchPolicy.comparisonTopics(question).size!=2) return null
+  val scenario=Regex("(?i)from\\s+(.+?)\\s+to\\s+(?:the\\s+)?([\\p{L}]+)").find(question.substringBefore('?')) ?: return null
+  val places=SearchPolicy.terms(scenario.groupValues[1])+SearchPolicy.terms(scenario.groupValues[2])
+  return text.split(Regex("(?<=[.!?])\\s+|\\n+"))
+   .filter { sentence ->
+    val words=SearchPolicy.tokens(sentence)
+    places.all { it in words } &&
+     Regex("[.!?]$").containsMatchIn(sentence.trim())
+   }.joinToString("\n").ifBlank { null }
+ }
  /** Verbatim sentence selections; the original excerpts remain available for review. */
  fun partExcerpt(question: String, part: Int, text: String): String {
+  scenarioExcerpt(question,part,text)?.let { return it }
   if(definitionDistinction(question,part))
    return SearchPolicy.comparisonDefinitions(question,text).values.distinct().joinToString("\n").ifBlank { text }
   val topic=SearchPolicy.comparisonTopics(question).getOrNull(part) ?: return text
@@ -26,6 +39,8 @@ internal object ComparisonPlan {
  }
  /** Lexical source roles for the current subject; these are not factual validation. */
  fun citationGuidance(question: String, part: Int, excerpts: List<String>): String {
+  if(part==2 && excerpts.any { scenarioExcerpt(question,part,it)!=null })
+   return "State only how both subjects change between the two locations, in at most 25 words. Do not repeat definitions or units. End directly with the supporting numeric citation."
   if(definitionDistinction(question,part)) {
    val refs=distinctionDefinitions(question,excerpts).joinToString(" ") { "[${it+1}]" }
    return "Compare the supplied definitions directly. When combining them, cite their source IDs: $refs. Write no prose about evidence or sources."
@@ -115,7 +130,7 @@ internal object ComparisonPlan {
    (if(Regex("(?i)\\b(means?|define|definition)\\b").containsMatchIn(question)) "What does $topic mean" else "What does $topic measure")+(if(units) ", and what is its SI unit" else "")+"? Answer only this part in one complete sentence, using the supplied sources and citations."
   }.toMutableList()
   val scenario=Regex("(?i)from\\s+(.+?)\\s+to\\s+(?:the\\s+)?([\\p{L}]+)").find(question.substringBefore('?'))
-  if(scenario!=null) tasks.add("What happens to ${topics[0]} and ${topics[1]} when moving from ${scenario.groupValues[1]} to ${scenario.groupValues[2]}? Name both locations and explain the changes in one complete sentence, using the supplied sources and citations.")
+  if(scenario!=null) tasks.add("What happens to ${topics[0]} and ${topics[1]} when moving from ${scenario.groupValues[1]} to ${scenario.groupValues[2]}? Name both locations and explain the changes in one complete sentence, using the supplied sources and citations. Use at most 25 words. Do not repeat definitions or units.")
   if(scenario==null) {
    if(Regex("(?i)\\bdirection\\b").containsMatchIn(question))
     tasks.add("How does direction distinguish ${topics[0]} and ${topics[1]}? Name both subjects and explain only the direction distinction in one short sentence with citations.")

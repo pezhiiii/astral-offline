@@ -2,6 +2,15 @@ package org.bl3.astral
 import org.junit.Assert.*
 import org.junit.Test
 class ComparisonPlanTest {
+ @Test fun scenarioEvidenceOmitsDefinitionsAndUnits() {
+  val q="Compare mass and weight: what are their SI units, and which changes from Earth to the Moon?"
+  val change="An object on the Moon would weigh less than it does on Earth because of the lower gravity, but it would still have the same mass."
+  val text="Mass is a measure of inertia. The SI unit of mass is the kilogram. $change"
+  assertEquals(change,ComparisonPlan.partExcerpt(q,2,text))
+  assertEquals("Mass is a measure of inertia.",ComparisonPlan.partExcerpt(q,2,"Mass is a measure of inertia."))
+  assertTrue(ComparisonPlan.questions(q)[2].contains("Do not repeat definitions or units"))
+  assertTrue(ComparisonPlan.citationGuidance(q,2,listOf(text)).contains("25 words"))
+ }
  @Test fun separatesSubjectsUnitsAndScenarioWithoutInventingAnswers() {
   val tasks=ComparisonPlan.questions("Compare mass and weight: what does each measure, what are their SI units, and which changes when moving from Earth to the Moon? Cite the sources.")
   assertEquals(3,tasks.size)
