@@ -87,6 +87,15 @@ internal object ComparisonPlan {
   else null
   return selected?.let { listOf(it) } ?: excerpts.indices.toList()
  }
+ /** Retrieval output, explicitly separate from model synthesis. */
+ fun directScenarioQuote(question: String, part: Int, excerpts: List<String>): String? {
+  if(part!=2) return null
+  for(index in sourceIndices(question,part,excerpts)) {
+   val quote=scenarioExcerpt(question,part,excerpts[index]) ?: continue
+   return "SOURCE QUOTATION — location comparison (not model-generated; relevance not semantically verified)\n[${index+1}] $quote"
+  }
+  return null
+ }
  /** Exact quotation gate for location scenarios only; not semantic verification. */
  fun scenarioQuoteRejection(question: String, part: Int, answer: String, excerpts: List<String>): String? {
   if(part!=2 || !Regex("(?i)\\bfrom\\s+.+\\s+to\\b").containsMatchIn(question)) return null

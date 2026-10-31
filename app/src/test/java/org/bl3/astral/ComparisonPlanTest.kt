@@ -2,6 +2,15 @@ package org.bl3.astral
 import org.junit.Assert.*
 import org.junit.Test
 class ComparisonPlanTest {
+ @Test fun directQuotePreservesSourceAndLabelsOrigin() {
+  val q="Compare mass and weight: what are their SI units, and which changes from Earth to the Moon?"
+  val quote="An object on the Moon would weigh less than it does on Earth because of the lower gravity, but it would still have the same mass."
+  val result=ComparisonPlan.directScenarioQuote(q,2,listOf(quote))!!
+  assertTrue(result.endsWith("[1] $quote"))
+  assertTrue(result.contains("not model-generated"))
+  assertNull(ComparisonPlan.directScenarioQuote(q,0,listOf(quote)))
+  assertNull(ComparisonPlan.directScenarioQuote(q,2,listOf("Mass measures inertia.")))
+ }
  @Test fun scenarioRejectsUnsupportedParaphraseAndWrongCitation() {
   val q="Compare mass and weight: what are their SI units, and which changes from Earth to the Moon?"
   val quote="An object on the Moon would weigh less than it does on Earth because of the lower gravity, but it would still have the same mass."

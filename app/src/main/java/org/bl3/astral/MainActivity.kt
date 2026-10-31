@@ -253,6 +253,7 @@ class MainActivity: Activity() {
      val requests=partQuestions.ifEmpty { listOf(q) }
      val drafts=mutableListOf<String>()
      val reports=mutableListOf<String>()
+     val directQuotes=mutableListOf<String>()
      var sectionReason: String?=null
      for((index,request) in requests.withIndex()) {
       if(cancelRequested.get()) { ui { output.text="Stopped." };return@execute }
@@ -260,6 +261,12 @@ class MainActivity: Activity() {
       val indices=if(partQuestions.isEmpty()) excerpts.indices.toList() else ComparisonPlan.sourceIndices(q,index,excerpts)
       val partSources=indices.joinToString("\n\n") { "[${it+1}] ${if(partQuestions.isEmpty()) excerpts[it] else ComparisonPlan.partExcerpt(q,index,excerpts[it])}" }
       val partRefs=indices.joinToString(" ") { "[${it+1}]" }
+      val directQuote=if(partQuestions.isNotEmpty()) ComparisonPlan.directScenarioQuote(q,index,excerpts) else null
+      if(directQuote!=null) {
+       directQuotes.add(directQuote)
+       reports.add("PART ${index+1} / ${requests.size}\nQuestion: $request\nMode: direct source quotation; model generation skipped.\n$directQuote")
+       continue
+      }
       val partSystem=if(partQuestions.isEmpty()) system else "SOURCES:\n$partSources\n\n"+
        "Use only the supplied evidence. Answer only the current question in one short, complete sentence, at most 30 words. No headings or separate source list. "+
        "Give the requested facts directly, then cite the supporting source IDs: $partRefs. "+
@@ -282,7 +289,8 @@ class MainActivity: Activity() {
       ". Source quotations are provided below; this is not a repaired model answer.\n\n"
      val completed=!timings.contains("Finish: token limit")
      val rejected=sectionReason!=null || CitationPolicy.evidenceRejectionReason(answer,excerpts,completed,q)!=null
-     val displayed=CitationPolicy.present(answer,excerpts,completed,q,sectionReason)
+     val displayed=CitationPolicy.present(answer,excerpts,completed,q,sectionReason)+
+      if(directQuotes.isEmpty()) "" else "\n\n"+directQuotes.joinToString("\n\n")
      val finalCoverage=if(rejected) "" else coverageNote
      ui {
       showingProgress=false
