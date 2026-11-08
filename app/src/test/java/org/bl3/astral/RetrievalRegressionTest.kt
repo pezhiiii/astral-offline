@@ -4,6 +4,45 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class RetrievalRegressionTest {
+ @Test fun keepsFullCarbonCycleSubject() {
+  val body="The carbon cycle is a part of the biogeochemical cycle where carbon is exchanged among Earth's systems."
+  val distractor="Carbon is a substance with three main isotopes."
+  val q="What is the carbon cycle?"
+  val subject=SearchPolicy.definitionAnchor(q,SearchPolicy.terms(q))
+  assertEquals("carbon cycle",subject)
+  assertEquals(listOf("title:carbon AND title:cycle","\"carbon cycle\""),SearchPolicy.candidateQueries(q))
+  for(input in listOf(q,"carbon cycle")) {
+   assertTrue(SearchPolicy.acceptsSubject(input,"Foundations / Carbon cycle",body))
+   assertFalse(SearchPolicy.acceptsSubject(input,"Science Reference",distractor))
+  }
+  assertEquals(body,SearchPolicy.definitionExcerpt(body,subject!!))
+ }
+
+ @Test fun retrievesCarbonIsotopeListFromFullQuestion() {
+  val q="What are the main isotopes of carbon?"
+  val title="Science Reference"
+  val partial="Carbon isotopes include carbon-12 and carbon-13."
+  val complete="There are three main isotopes of carbon: carbon-12, carbon-13, and carbon-14."
+  val terms=SearchPolicy.terms(q)
+  assertNull(SearchPolicy.definitionAnchor(q,terms))
+  assertTrue(SearchPolicy.candidateQueries(q).contains("\"isotopes\" AND \"carbon\""))
+  assertTrue(SearchPolicy.acceptsSubject(q,title,partial))
+  assertTrue(SearchPolicy.acceptsSubject(q,title,complete))
+  assertFalse(SearchPolicy.acceptsSubject(q,title,"Carbon is exchanged in the carbon cycle."))
+  assertFalse(SearchPolicy.acceptsSubject(q,title,"Hydrogen has three main isotopes."))
+  assertTrue(SearchPolicy.score(terms,title,complete)>SearchPolicy.score(terms,title,partial))
+ }
+
+ @Test fun keepsIsotopeNamesAfterListIntroduction() {
+  val body=List(65) { "Background." }.joinToString(" ") +
+   " There are three main isotopes of carbon. All carbon atoms have 6 protons, but they can have either 6, 7, or 8 neutrons. Since the mass numbers are 12, 13, and 14, the isotopes are known as carbon-12, carbon-13, and carbon-14."
+  val evidence=SearchPolicy.enumerationExcerpt("What are the main isotopes of carbon?",body)!!
+  assertTrue(evidence.startsWith("There are three"))
+  for(name in listOf("carbon-12","carbon-13","carbon-14")) assertTrue(evidence.contains(name))
+  assertTrue(evidence.split(' ').size<=55)
+  assertNull(SearchPolicy.enumerationExcerpt("What is the carbon cycle?",body))
+ }
+
  @Test fun rejectsIncidentalVelocity() {
   val q="What is velocity, and does the cited source name the first person who measured it?"
   assertFalse(SearchPolicy.acceptsSubject(q,"Cartridge","Velocity is close to another cartridge but uses less powder."))

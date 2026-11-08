@@ -60,8 +60,13 @@ internal object SearchPolicy {
   val units=unitTopics(question)
   if(units.isNotEmpty()) return units.flatMap { listOf("title:$it", "body:$it") }
   val anchor=subjectAnchor(question) ?: definitionAnchor(question,queryTerms)
-  if(anchor!=null) return listOf("title:$anchor", "body:$anchor")
-  val focus=queryTerms.filter { it !in setOf("happened", "happen", "won", "winner", "result", "outcome", "different", "difference", "differences", "between", "versus", "vs", "comparison") }.take(8)
+  if(anchor!=null) {
+   val subject=tokens(anchor)
+   if(subject.size==1) return listOf("title:$anchor", "body:$anchor")
+   // FTS4 does not reliably scope a quoted phrase with title:"...".
+   return listOf(subject.joinToString(" AND ") { "title:$it" }, "\"$anchor\"")
+  }
+  val focus=(enumerationTerms(question) ?: queryTerms).filter { it !in setOf("happened", "happen", "won", "winner", "result", "outcome", "different", "difference", "differences", "between", "versus", "vs", "comparison") }.take(8)
   if(focus.isEmpty()) return emptyList()
   val exactTitle=focus.joinToString(" AND ") { "title:$it" }
   val exact=focus.joinToString(" AND ") { "\"$it\"" }
@@ -109,10 +114,10 @@ internal object SearchPolicy {
     Regex("[.!?]$").containsMatchIn(sentence) &&
      (reverse.containsMatchIn(sentence) ||
       (direct.containsMatchIn(sentence) &&
-       Regex("(?i)\\b(?:quantity|measure|measurement|rate|defined|refers|means|consists|property|process|system|organism|substance|device|person|community|energy|force|resistance|vector|scalar)\\b").containsMatchIn(sentence)))
+       Regex("(?i)\\b(?:quantity|measure|measurement|rate|cycle|defined|refers|means|consists|property|process|system|organism|substance|device|person|community|energy|force|resistance|vector|scalar)\\b").containsMatchIn(sentence)))
    }
   }
-  val subject=terms(question.substringBefore('?')).filter {
+  val subject=(enumerationTerms(question) ?: terms(question.substringBefore('?'))).filter {
    it !in setOf("different", "difference", "differences", "between", "versus", "vs", "happened", "happen", "won", "winner", "result", "outcome", "contributions", "contribution")
   }
   if(subject.isEmpty()) return false
@@ -366,13 +371,27 @@ internal object SearchPolicy {
   return terms(match.groupValues[1]).firstOrNull()
  }
 
+ // "What are the main X of Y?" asks for members of a set, not a definition.
+ private val enumerationPrefix=Regex("(?i)^\\s*what\\s+are\\s+(?:the\\s+)?(?:main|major|primary|principal)\\s+")
+ fun isEnumeration(question: String): Boolean = enumerationTerms(question)!=null
+
+ private fun enumerationTerms(question: String): List<String>? =
+  if(enumerationPrefix.containsMatchIn(question))
+   terms(question.substringBefore('?').replaceFirst(enumerationPrefix,"")).takeIf { it.isNotEmpty() }
+  else null
+
  private val genericDefinitionHeads=setOf("capital", "population", "president", "founder", "history", "location", "date", "year", "name", "cause")
  fun definitionAnchor(question: String, terms: List<String>): String? {
-  if(isComparison(question) || unitTopics(question).isNotEmpty()) return null
+  if(isComparison(question) || unitTopics(question).isNotEmpty() || enumerationTerms(question)!=null) return null
   if(!Regex("(?i)^\\s*(what is|what are|define)\\b").containsMatchIn(question)) return null
+  val subject=question.trimStart().replaceFirst(Regex("(?i)^(?:what is|what are|define)\\b"),"")
+   .split(Regex("(?i)[?.,;!:\\n]|\\s+(?:and|then)\\s+"),limit=2).first()
   val first=terms.firstOrNull() ?: return null
-  // "capital of France" needs both terms, unlike "what is an ecosystem?".
-  return if(terms.size>1 && first in genericDefinitionHeads) null else first
+  val words=word.findAll(subject.lowercase(Locale.ROOT)).map { it.value }.toList()
+   .dropWhile { it in setOf("a","an","the") }
+  // "capital of France" is a relational lookup, not a definition.
+  if(words.size>1 && first in genericDefinitionHeads) return null
+  return words.joinToString(" ").ifBlank { null }
  }
 
  fun excerpt(text: String, terms: List<String>, maxWords: Int = 90): String {
@@ -411,11 +430,12 @@ internal object SearchPolicy {
    (if(head.containsMatchIn(it.value)) 10 else 0) +
     (if(head.containsMatchIn(it.value) && Regex("(?i)\\b(defined|measure|measures)\\b").containsMatchIn(it.value)) 3 else 0)
   }.thenBy { it.index })
+  val subjectMention=Regex("(?i)\\b${Regex.escape(anchor)}\\b")
   var used=0
   val selected=mutableListOf<IndexedValue<String>>()
   for(item in ranked) {
    val count=item.value.split(Regex("\\s+")).size
-   if(used+count<=maxWords && tokens(item.value).contains(anchor)) {
+   if(used+count<=maxWords && subjectMention.containsMatchIn(item.value)) {
     selected.add(item);used+=count
    }
   }
@@ -427,6 +447,21 @@ internal object SearchPolicy {
       used+count<=maxWords) { selected.add(item);used+=count }
   }
   return selected.sortedBy { it.index }.joinToString("\n") { it.value }
+ }
+
+ /** Keep the list after its introductory sentence within the existing budget. */
+ fun enumerationExcerpt(question: String, body: String, maxWords: Int = 55): String? {
+  val wanted=enumerationTerms(question)?.toSet() ?: return null
+  val lead=Regex("(?i)\\b(?:main|major|primary|principal)\\b")
+  val sentences=DocumentSections.quotationBody(body).split(Regex("(?<=[.!?])\\s+|\\n+"))
+   .map { it.trim() }.filter { it.isNotEmpty() }
+  val start=sentences.indexOfFirst { lead.containsMatchIn(it) && tokens(it).containsAll(wanted) }
+  if(start<0) return null
+  var remaining=maxWords
+  return sentences.drop(start).takeWhile { sentence ->
+   remaining-=sentence.split(Regex("\\s+")).size
+   remaining>=0 && sentence.last() in ".!?"
+  }.joinToString(" ").ifBlank { null }
  }
 
  fun eventExcerpt(text: String, terms: List<String>, maxWords: Int): String {
