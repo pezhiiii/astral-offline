@@ -66,7 +66,7 @@ internal object SearchPolicy {
    // FTS4 does not reliably scope a quoted phrase with title:"...".
    return listOf(subject.joinToString(" AND ") { "title:$it" }, "\"$anchor\"")
   }
-  val focus=queryTerms.filter { it !in setOf("happened", "happen", "won", "winner", "result", "outcome", "different", "difference", "differences", "between", "versus", "vs", "comparison") }.take(8)
+  val focus=(enumerationTerms(question) ?: queryTerms).filter { it !in setOf("happened", "happen", "won", "winner", "result", "outcome", "different", "difference", "differences", "between", "versus", "vs", "comparison") }.take(8)
   if(focus.isEmpty()) return emptyList()
   val exactTitle=focus.joinToString(" AND ") { "title:$it" }
   val exact=focus.joinToString(" AND ") { "\"$it\"" }
@@ -117,7 +117,7 @@ internal object SearchPolicy {
        Regex("(?i)\\b(?:quantity|measure|measurement|rate|cycle|defined|refers|means|consists|property|process|system|organism|substance|device|person|community|energy|force|resistance|vector|scalar)\\b").containsMatchIn(sentence)))
    }
   }
-  val subject=terms(question.substringBefore('?')).filter {
+  val subject=(enumerationTerms(question) ?: terms(question.substringBefore('?'))).filter {
    it !in setOf("different", "difference", "differences", "between", "versus", "vs", "happened", "happen", "won", "winner", "result", "outcome", "contributions", "contribution")
   }
   if(subject.isEmpty()) return false
@@ -371,9 +371,16 @@ internal object SearchPolicy {
   return terms(match.groupValues[1]).firstOrNull()
  }
 
+ // "What are the main X of Y?" asks for members of a set, not a definition.
+ private val enumerationPrefix=Regex("(?i)^\\s*what\\s+are\\s+(?:the\\s+)?(?:main|major|primary|principal)\\s+")
+ private fun enumerationTerms(question: String): List<String>? =
+  if(enumerationPrefix.containsMatchIn(question))
+   terms(question.substringBefore('?').replaceFirst(enumerationPrefix,"")).takeIf { it.isNotEmpty() }
+  else null
+
  private val genericDefinitionHeads=setOf("capital", "population", "president", "founder", "history", "location", "date", "year", "name", "cause")
  fun definitionAnchor(question: String, terms: List<String>): String? {
-  if(isComparison(question) || unitTopics(question).isNotEmpty()) return null
+  if(isComparison(question) || unitTopics(question).isNotEmpty() || enumerationTerms(question)!=null) return null
   if(!Regex("(?i)^\\s*(what is|what are|define)\\b").containsMatchIn(question)) return null
   val subject=question.trimStart().replaceFirst(Regex("(?i)^(?:what is|what are|define)\\b"),"")
    .split(Regex("(?i)[?.,;!:\\n]|\\s+(?:and|then)\\s+"),limit=2).first()

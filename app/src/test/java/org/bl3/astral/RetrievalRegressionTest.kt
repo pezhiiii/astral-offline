@@ -18,6 +18,21 @@ class RetrievalRegressionTest {
   assertEquals(body,SearchPolicy.definitionExcerpt(body,subject!!))
  }
 
+ @Test fun retrievesCarbonIsotopeListFromFullQuestion() {
+  val q="What are the main isotopes of carbon?"
+  val title="Science Reference"
+  val partial="Carbon isotopes include carbon-12 and carbon-13."
+  val complete="There are three main isotopes of carbon: carbon-12, carbon-13, and carbon-14."
+  val terms=SearchPolicy.terms(q)
+  assertNull(SearchPolicy.definitionAnchor(q,terms))
+  assertTrue(SearchPolicy.candidateQueries(q).contains("\"isotopes\" AND \"carbon\""))
+  assertTrue(SearchPolicy.acceptsSubject(q,title,partial))
+  assertTrue(SearchPolicy.acceptsSubject(q,title,complete))
+  assertFalse(SearchPolicy.acceptsSubject(q,title,"Carbon is exchanged in the carbon cycle."))
+  assertFalse(SearchPolicy.acceptsSubject(q,title,"Hydrogen has three main isotopes."))
+  assertTrue(SearchPolicy.score(terms,title,complete)>SearchPolicy.score(terms,title,partial))
+ }
+
  @Test fun rejectsIncidentalVelocity() {
   val q="What is velocity, and does the cited source name the first person who measured it?"
   assertFalse(SearchPolicy.acceptsSubject(q,"Cartridge","Velocity is close to another cartridge but uses less powder."))
