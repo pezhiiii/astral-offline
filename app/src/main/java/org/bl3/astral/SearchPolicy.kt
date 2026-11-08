@@ -373,6 +373,8 @@ internal object SearchPolicy {
 
  // "What are the main X of Y?" asks for members of a set, not a definition.
  private val enumerationPrefix=Regex("(?i)^\\s*what\\s+are\\s+(?:the\\s+)?(?:main|major|primary|principal)\\s+")
+ fun isEnumeration(question: String): Boolean = enumerationTerms(question)!=null
+
  private fun enumerationTerms(question: String): List<String>? =
   if(enumerationPrefix.containsMatchIn(question))
    terms(question.substringBefore('?').replaceFirst(enumerationPrefix,"")).takeIf { it.isNotEmpty() }
