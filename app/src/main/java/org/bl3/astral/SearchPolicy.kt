@@ -447,6 +447,21 @@ internal object SearchPolicy {
   return selected.sortedBy { it.index }.joinToString("\n") { it.value }
  }
 
+ /** Keep the list after its introductory sentence within the existing budget. */
+ fun enumerationExcerpt(question: String, body: String, maxWords: Int = 55): String? {
+  val wanted=enumerationTerms(question)?.toSet() ?: return null
+  val lead=Regex("(?i)\\b(?:main|major|primary|principal)\\b")
+  val sentences=DocumentSections.quotationBody(body).split(Regex("(?<=[.!?])\\s+|\\n+"))
+   .map { it.trim() }.filter { it.isNotEmpty() }
+  val start=sentences.indexOfFirst { lead.containsMatchIn(it) && tokens(it).containsAll(wanted) }
+  if(start<0) return null
+  var remaining=maxWords
+  return sentences.drop(start).takeWhile { sentence ->
+   remaining-=sentence.split(Regex("\\s+")).size
+   remaining>=0 && sentence.last() in ".!?"
+  }.joinToString(" ").ifBlank { null }
+ }
+
  fun eventExcerpt(text: String, terms: List<String>, maxWords: Int): String {
   val standard=excerpt(text,terms,maxWords)
   if(terms.none { it in setOf("happened", "won", "winner", "result", "outcome") }) return standard

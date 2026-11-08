@@ -217,7 +217,7 @@ class MainActivity: Activity() {
      val definitionSubject=SearchPolicy.definitionAnchor(q,terms)
      val isSimpleDefinition=definitionSubject!=null
      val modelHits=if(isComparison) hits.take(4) else SearchPolicy.modelSourceIndices(q,hits.map { it.title },if(isSimpleDefinition) 1 else 2).map { hits[it] }
-     val excerpts=modelHits.map { if(isComparison) SearchPolicy.comparisonModelContext(q,it.text).orEmpty() else if(isSimpleDefinition) SearchPolicy.definitionExcerpt(it.text,definitionSubject!!,90) else SearchPolicy.unitExcerpt(q,it.text) ?: SearchPolicy.explanationExcerpt(q,it.text) ?: SearchPolicy.eventExcerpt(it.text,terms,55) }
+     val excerpts=modelHits.map { if(isComparison) SearchPolicy.comparisonModelContext(q,it.text).orEmpty() else if(isSimpleDefinition) SearchPolicy.definitionExcerpt(it.text,definitionSubject!!,90) else SearchPolicy.unitExcerpt(q,it.text) ?: SearchPolicy.explanationExcerpt(q,it.text) ?: SearchPolicy.enumerationExcerpt(q,it.text) ?: SearchPolicy.eventExcerpt(it.text,terms,55) }
      if(excerpts.any { it.isBlank() }) { ui { output.text="No complete source sentence fits the evidence budget. View source passages for the full text." };return@execute }
      val missingEvidence=if(isComparison) SearchPolicy.missingComparisonEvidence(q,excerpts) else emptyList()
      if(missingEvidence.isNotEmpty()) {
