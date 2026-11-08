@@ -4,6 +4,20 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class RetrievalRegressionTest {
+ @Test fun keepsFullCarbonCycleSubject() {
+  val body="The carbon cycle is a part of the biogeochemical cycle where carbon is exchanged among Earth's systems."
+  val distractor="Carbon is a substance with three main isotopes."
+  val q="What is the carbon cycle?"
+  val subject=SearchPolicy.definitionAnchor(q,SearchPolicy.terms(q))
+  assertEquals("carbon cycle",subject)
+  assertEquals(listOf("title:carbon AND title:cycle","\"carbon cycle\""),SearchPolicy.candidateQueries(q))
+  for(input in listOf(q,"carbon cycle")) {
+   assertTrue(SearchPolicy.acceptsSubject(input,"Foundations / Carbon cycle",body))
+   assertFalse(SearchPolicy.acceptsSubject(input,"Science Reference",distractor))
+  }
+  assertEquals(body,SearchPolicy.definitionExcerpt(body,subject!!))
+ }
+
  @Test fun rejectsIncidentalVelocity() {
   val q="What is velocity, and does the cited source name the first person who measured it?"
   assertFalse(SearchPolicy.acceptsSubject(q,"Cartridge","Velocity is close to another cartridge but uses less powder."))
