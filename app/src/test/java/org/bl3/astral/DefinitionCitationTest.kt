@@ -2,6 +2,21 @@ package org.bl3.astral
 import org.junit.Assert.*
 import org.junit.Test
 class DefinitionCitationTest {
+ @Test fun bareDefinitionQuotesExactCompleteSourceSentence() {
+  val definition="Photosynthesis is a process that converts light energy into chemical energy."
+  assertTrue(DirectDefinitionQuote.isBareDefinition("What is photosynthesis?", "photosynthesis"))
+  assertTrue(DirectDefinitionQuote.isBareDefinition("Define an ecosystem.", "ecosystem"))
+  assertEquals(definition,DirectDefinitionQuote.directDefinitionQuote("$definition Photosynthesis occurs in plants.", "photosynthesis"))
+ }
+
+ @Test fun qualifiedQuestionsAndIncompleteEvidenceDoNotQualify() {
+  assertFalse(DirectDefinitionQuote.isBareDefinition("What is photosynthesis and why does it matter?", "photosynthesis"))
+  assertFalse(DirectDefinitionQuote.isBareDefinition("What is the SI unit of mass?", "mass"))
+  assertNull(DirectDefinitionQuote.directDefinitionQuote("Photosynthesis is a process that converts light ...", "photosynthesis"))
+  assertNull(DirectDefinitionQuote.directDefinitionQuote("Photosynthesis is discussed in this article.", "photosynthesis"))
+  assertNull(DirectDefinitionQuote.directDefinitionQuote("Respiration is a process distinct from photosynthesis.", "photosynthesis"))
+ }
+
  @Test fun operationalDefinitionPreferredWhenAvailable() {
   val first="Mass is an intrinsic physical quantity of a body."
   val operational="Mass can be experimentally defined as a measure of the body's inertia, meaning its resistance to acceleration when a net force is applied."

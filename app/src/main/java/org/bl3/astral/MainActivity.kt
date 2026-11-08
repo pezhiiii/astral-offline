@@ -183,7 +183,6 @@ class MainActivity: Activity() {
   val q=question.text.toString().trim();if(q.isEmpty()) return
   val requestedThreads=cpuThreads
   cancelRequested.set(false)
-  try { Engine.prepare() } catch(e: Throwable) { output.text="Engine unavailable: ${e.message}";return }
   fullSourcePassages=""
   busy(true);status.text="Searching local evidence…";output.text=""
   worker.execute {
@@ -211,14 +210,28 @@ class MainActivity: Activity() {
      ui { output.text="$calculated\n\nLOCAL EVIDENCE\n$sources\n\nElapsed: ${"%.3f".format((System.nanoTime()-started)/1e9)} s" }
      return@execute
     }
+    val terms=SearchPolicy.terms(q)
+    val definitionSubject=SearchPolicy.definitionAnchor(q,terms)
+    val bareDefinition=definitionSubject?.let { DirectDefinitionQuote.isBareDefinition(q,it) } ?: false
+    if(bareDefinition && !isComparison) {
+     val sourceIndex=SearchPolicy.modelSourceIndices(q,hits.map { it.title },1).firstOrNull()
+     val source=sourceIndex?.let { hits[it] }
+     val quote=source?.let { DirectDefinitionQuote.directDefinitionQuote(it.text,definitionSubject!!) }
+     if(cancelRequested.get()) { ui { output.text="Stopped." };return@execute }
+     if(sourceIndex!=null && source!=null && quote!=null) {
+      val reference="[${sourceIndex+1}]"
+      val elapsed="%.3f".format((System.nanoTime()-started)/1e9)
+      ui {
+       evidence="$reference ${source.title} (passage ${source.id})\n$quote"
+       output.text="DIRECT SOURCE QUOTE — model not run.\n\n$reference $quote\n\n${source.title} (passage ${source.id})\nElapsed: $elapsed s"
+      }
+      return@execute
+     }
+    }
     ui { status.text="Evidence found · generating locally…";output.text=if(isComparison) comparisonPreview+"\n\nGenerating locally…" else sources }
     if(model.exists()) {
-     val terms=SearchPolicy.terms(q)
-     val definitionSubject=SearchPolicy.definitionAnchor(q,terms)
+     try { Engine.prepare() } catch(e: Throwable) { ui { output.text="Engine unavailable: ${e.message}" };return@execute }
      val isSimpleDefinition=definitionSubject!=null
-     val bareDefinition=definitionSubject?.let { subject ->
-      Regex("""(?i)^\s*(?:what\s+is\s+(?:(?:a|an|the)\s+)?|define\s+)${Regex.escape(subject)}\s*[?.]?\s*$""").matches(q)
-     } ?: false
      val definitionLead=definitionSubject?.let { subject ->
       Regex("""(?i)^(?:(?:a|an|the)\s+)?${Regex.escape(subject)}\s+(?:is|means|refers\s+to)\b""")
      }
