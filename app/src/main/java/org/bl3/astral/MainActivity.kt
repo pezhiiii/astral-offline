@@ -300,7 +300,11 @@ class MainActivity: Activity() {
      val rejected=sectionReason!=null || CitationPolicy.evidenceRejectionReason(answer,excerpts,completed,q,coverageQuotes)!=null
      val displayed=CitationPolicy.present(answer,excerpts,completed,q,sectionReason,coverageQuotes)+
       if(directQuotes.isEmpty()) "" else "\n\n"+directQuotes.joinToString("\n\n")
-     val finalCoverage=if(rejected) "" else coverageNote
+     val finalCoverage=if(rejected) {
+      EnumerationQuote.find(q,excerpts)?.let { (source,quote) ->
+       "DIRECT SOURCE QUOTE — the generated answer was rejected.\n\n[$source] $quote\n\n"
+      }.orEmpty()
+     } else coverageNote
      ui {
       showingProgress=false
       progressHandler.removeCallbacks(progressTick)
